@@ -8,42 +8,20 @@
 </style>
 </head>
 <body><main class="card"><div class="mark" aria-hidden="true">♪</div><p class="eyebrow">Personal sound player · test 01</p><h1>Connect to TikTok</h1><p>Test TikTok sign-in before building the player. Sign-in alone does not give this site access to your Favorite Sounds.</p>
-<p id="status" class="status" role="status" aria-live="polite">Enter a TikTok developer client key to begin.</p>
-<form id="login"><label for="key">TikTok client key</label><input id="key" autocomplete="off" required placeholder="Your app’s client key"><button id="submit" type="submit">Continue with TikTok</button></form>
-<div class="note"><p>Your password stays on TikTok’s sign-in page. This test does not exchange the authorization code or store a TikTok session.</p><p>Setup requires a registered TikTok app and an HTTPS page. Register this exact page URL as its redirect URI:</p><p class="callback" id="callback"></p><p><a href="https://developers.tiktok.com/docs/en/login-kit-web" target="_blank" rel="noopener noreferrer">TikTok Login Kit setup ↗</a></p></div></main>
+<p id="status" class="status" role="status" aria-live="polite">Continue to TikTok to test sign-in.</p>
+<form action="/api/tiktok/login" method="get"><button type="submit">Continue with TikTok</button></form>
+<div class="note"><p>Your password stays on TikTok’s sign-in page. The server exchanges the authorization code, then discards the tokens. This test does not create a session or retrieve a profile.</p><p><a href="/privacy.html">Privacy notice</a></p></div></main>
 <script>
 (() => {
   const url = new URL(location.href);
-  const redirect = url.origin + url.pathname;
-  const status = document.querySelector('#status');
-  const form = document.querySelector('#login');
-  document.querySelector('#callback').textContent = redirect;
-  const returnedState = url.searchParams.get('state');
-  const code = url.searchParams.get('code');
-  const error = url.searchParams.get('error');
-  if (code || error || returnedState) {
-    const expected = sessionStorage.getItem('tiktok-test-state');
-    sessionStorage.removeItem('tiktok-test-state');
-    history.replaceState(null, '', url.pathname);
-    if (!expected || !returnedState || expected !== returnedState) status.textContent = 'The response could not be verified. Start the test again.';
-    else if (error) status.textContent = 'TikTok did not authorize the request. You can try again.';
-    else if (code) status.textContent = 'TikTok returned an authorization code. This test discarded it; no account is connected and Favorite Sounds access has not been tested.';
-    else status.textContent = 'TikTok did not return an authorization code.';
-  }
-  if (location.protocol !== 'https:') {
-    document.querySelector('#submit').disabled = true;
-    if (!code && !error && !returnedState) status.textContent = 'Setup required: host this page at an HTTPS address registered with your TikTok app.';
-  }
-  form.addEventListener('submit', event => {
-    event.preventDefault();
-    if (location.protocol !== 'https:') return;
-    const key = document.querySelector('#key').value.trim();
-    if (!key) return;
-    const state = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
-    sessionStorage.setItem('tiktok-test-state', state);
-    const auth = new URL('https://www.tiktok.com/v2/auth/authorize/');
-    auth.search = new URLSearchParams({client_key:key, scope:'user.info.basic', response_type:'code', redirect_uri:redirect, state}).toString();
-    location.assign(auth.href);
-  });
+  const messages = {
+    config: 'Sign-in is not configured. Check the server settings and registered callback URL.',
+    state: 'The response could not be verified. Start the test again.',
+    denied: 'TikTok did not authorize the request. You can try again.',
+    failed: 'TikTok sign-in could not be completed. You can try again.'
+  };
+  const result = url.searchParams.get('result');
+  if (Object.hasOwn(messages, result)) document.querySelector('#status').textContent = messages[result];
+  if (url.search) history.replaceState(null, '', url.pathname);
 })();
 </script></body></html>
