@@ -163,12 +163,8 @@
     });
   }
 
-  // Where the install button goes. Chrome and Brave get the latest GitHub release zip. iPhone has no public build yet, so it opens the README.
+  // Where the install button goes. Chrome and Brave get the latest GitHub release zip. iPhone has no public build yet, so its link is empty. Add the TestFlight or App Store link there when one exists.
   const INSTALL_LINKS = { ios: '', chromium: 'https://github.com/0xSenzel/subtok/releases/latest/download/subtok-extension.zip' };
-  const SETUP_DOCS = {
-    ios: 'https://github.com/0xSenzel/subtok#iphone',
-    chromium: 'https://github.com/0xSenzel/subtok#desktop-chrome-or-brave'
-  };
 
   function platform() {
     const agent = navigator.userAgent;
@@ -208,6 +204,13 @@
 
   function showSetup() {
     const kind = platform();
+    if ((kind === 'ios' || kind === 'ios-other') && !INSTALL_LINKS.ios) {
+      return showNotice({
+        heading: 'Subtok isn’t on iPhone yet',
+        body: ['You can play the sample here. To play your TikTok collections, use Chrome or Brave on a computer.'],
+        actions: [{ label: 'Play sample', primary: true, run: playSample }]
+      });
+    }
     if (kind === 'ios-other') {
       return showNotice({
         heading: 'Open this page in Safari',
@@ -243,7 +246,7 @@
         { steps }
       ],
       actions: [
-        { label: kind === 'ios' ? 'Install Subtok' : 'Download extension', primary: true, run: () => window.open(INSTALL_LINKS[kind] || SETUP_DOCS[kind], '_blank', 'noopener') },
+        { label: kind === 'ios' ? 'Install Subtok' : 'Download extension', primary: true, run: () => window.open(INSTALL_LINKS[kind], '_blank', 'noopener') },
         { label: 'Check again', run: recheck },
         { label: 'Play sample', run: playSample }
       ]
