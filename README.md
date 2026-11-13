@@ -6,11 +6,11 @@ The [Subtok landing page](https://0xsenzel.github.io/subtok/) explains how the p
 
 ## Listen
 
-1. Open the [Subtok player](https://subtok-player.vercel.app/). It starts with a sample playlist, so you can listen and skip tracks before you install anything. Select **Play sample**.
-2. To play a public collection in any browser, including any iPhone or Android browser, select **Paste a collection link**. In TikTok, open the collection, select Share, then Copy link, and paste the link. There is no extension and no sign-in. A private collection has no share link, so it needs the extension.
-3. To hear your own collections, including private ones, select **Play my TikTok collections** in Chrome or Brave on a computer. If the extension is missing, the player shows the setup steps for your browser and checks again each time you return to the tab.
+1. Open the [Subtok player](https://subtok-player.vercel.app/). To play a public collection in any browser, including any iPhone or Android browser, paste its link into the field and select **Play**. In TikTok, open the collection, select Share, then Copy link. There is no extension and no sign-in. A private collection has no share link, so it needs the extension.
+2. To listen before you paste anything, select **Play a sample**.
+3. To hear your own collections, including private ones, use Chrome or Brave on a computer and select **Set up the extension** under the field. Once the extension is installed, the link reads **Open my collections**. If the extension is missing, the player shows the setup steps for your browser and checks again each time you return to the tab.
 4. If you aren't signed in to TikTok in this browser, select **Open TikTok**, sign in, and return.
-5. Choose a collection. The website remembers it on this browser. To switch, select **Change**. While the sample plays, select **Use my collections** instead. For a collection from a link, **Change** opens the link form.
+5. The website reopens your last collection on this browser. To switch, select **Change**. For a collection from a link, **Change** returns to the start screen, which lists your recent collections, up to eight. Select one to play it again without pasting, or select **×** to remove it. While the sample plays, select **Use my collections** instead.
 6. On iPhone, any browser plays a collection from a link. The extension needs Safari. While audio plays, you can lock the phone or switch apps. If iOS shows Now Playing controls, use them to pause or skip.
 
 The player shows the clip video while the page is visible and falls back to cover art when the video is unavailable. A collection from a link shows cover art only, because TikTok's video addresses need a sign-in. On iPhone, Safari can send still artwork and playback commands to iOS. iOS chooses the Now Playing layout. The website can't put moving video in the Dynamic Island.

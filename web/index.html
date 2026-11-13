@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#211c19">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https:; media-src 'self' https: blob:; connect-src 'self' https://*.tiktokcdn.com https://*.tiktokcdn-us.com; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https:; media-src 'self' https: blob:; connect-src 'self' https://*.tiktokcdn.com https://*.tiktokcdn-us.com; font-src 'self'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <link rel="icon" href="cover.png">
   <link rel="apple-touch-icon" href="cover.png">
@@ -16,6 +16,31 @@
 </head>
 <body>
   <main>
+    <section id="welcome" class="page welcome" aria-labelledby="welcome-title" hidden>
+      <p class="wordmark"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/></svg>Subtok</p>
+      <div class="record" aria-hidden="true">
+        <div class="disc"></div>
+        <img class="sleeve" src="cover.png" alt="" width="512" height="512">
+      </div>
+      <h1 id="welcome-title">Your TikTok saves, played like an album.</h1>
+      <p class="lede">Paste a collection link. It keeps playing with your phone locked.</p>
+      <form id="link-form" class="link-field" novalidate>
+        <label for="collection-link" class="visually-hidden">Collection link</label>
+        <input id="collection-link" type="url" inputmode="url" placeholder="Paste a TikTok collection link" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="link-hint link-error">
+        <button type="submit" id="link-play" class="primary"><span class="label">Play</span></button>
+      </form>
+      <p id="link-hint" class="hint">In TikTok, open a public collection, then Share › Copy link.</p>
+      <p id="link-error" class="error" role="alert" hidden></p>
+      <div id="recent" hidden>
+        <h2 id="recent-title">Recent collections</h2>
+        <ul id="recent-list" aria-labelledby="recent-title"></ul>
+      </div>
+      <div class="more">
+        <button type="button" id="play-sample" class="sample"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>Play a sample</button>
+        <p id="private-note" class="private"></p>
+      </div>
+    </section>
+
     <section id="notice" class="page" aria-labelledby="notice-title" hidden>
       <h1 id="notice-title"></h1>
       <div class="body"></div>

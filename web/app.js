@@ -103,7 +103,7 @@
 
   function show(page) {
     stopReturnCheck();
-    for (const section of [notice, picker, player]) section.hidden = section !== page;
+    for (const section of [welcome, notice, picker, player]) section.hidden = section !== page;
     if (page !== player) {
       if (audio.hasAttribute('src')) {
         saveResume();
@@ -165,24 +165,127 @@
   // Chrome and Brave run the extension. iPhone does too once there is a public build to install.
   const extensionPlatform = () => platform() === 'chromium' || (platform() === 'ios' && !!INSTALL_LINKS.ios);
 
-  function showWelcome() {
-    const kind = platform();
-    const hasExtension = !!document.documentElement.dataset.mcqExtension;
-    const canDownload = !hasExtension && !!INSTALL_LINKS[kind];
-    const download = { text: 'Private collections need the free Subtok extension.', link: kind === 'ios' ? 'Install Subtok' : 'Download extension', run: () => { getExtension(kind); showSetup(); } };
-    const body = hasExtension ? ['Play a public collection from its link, or play your own collections. Your Subtok extension is ready.']
-      : canDownload ? ['Play a public collection from its link, or try a short sample playlist.', download]
-        : ['Play a public collection from its link, or try a short sample playlist. Private collections need the Subtok extension in Chrome or Brave on a computer.'];
-    showNotice({
-      heading: 'Play your TikTok collections',
-      body,
-      actions: [
-        { label: 'Play sample', primary: true, run: playSample },
-        { label: 'Paste a collection link', run: showLinkForm },
-        ...(extensionPlatform() || hasExtension ? [{ label: 'Play my TikTok collections', run: startMine }] : [])
-      ]
-    });
+  // Welcome. The link field is the main way in because it works in every browser. The sample and the extension come after it.
+
+  const welcome = $('#welcome');
+  const linkForm = $('#link-form');
+  const linkInput = $('#collection-link');
+  const linkPlay = $('#link-play');
+  const linkError = $('#link-error');
+
+  function setLinkError(message) {
+    linkError.textContent = message;
+    linkError.hidden = !message;
+    if (message) linkInput.setAttribute('aria-invalid', 'true');
+    else linkInput.removeAttribute('aria-invalid');
   }
+  function setLinkBusy(busy) {
+    linkPlay.disabled = busy;
+    linkInput.readOnly = busy;
+    linkPlay.classList.toggle('busy', busy);
+    linkPlay.querySelector('.label').textContent = busy ? 'Loading' : 'Play';
+    linkForm.setAttribute('aria-busy', String(busy));
+  }
+
+  function showWelcome({ focus = false } = {}) {
+    setLinkError('');
+    setLinkBusy(false);
+    renderRecent();
+    renderPrivateNote();
+    show(welcome);
+    if (focus) linkInput.focus();
+  }
+  // From the player's Change button. Phones skip the focus, so the keyboard doesn't cover the recent list.
+  const showLinkForm = () => showWelcome({ focus: !matchMedia('(pointer: coarse)').matches });
+
+  function renderPrivateNote() {
+    const note = $('#private-note');
+    const hasExtension = !!document.documentElement.dataset.mcqExtension;
+    if (!hasExtension && !extensionPlatform()) {
+      return note.replaceChildren('Private collections need the Subtok extension in Chrome or Brave on a computer.');
+    }
+    const button = element('button', hasExtension ? 'Open my collections' : 'Set up the extension', 'link');
+    button.type = 'button';
+    button.addEventListener('click', startMine);
+    note.replaceChildren(hasExtension ? 'Your Subtok extension is ready for private collections. ' : 'Private collections need the free Subtok extension. ', button);
+  }
+
+  // Recent collections. Every collection opened from a link is kept here, so the visitor never pastes it twice.
+  const recentKey = 'mcq.recent';
+  const recent = {
+    get() {
+      try {
+        const list = JSON.parse(localStorage.getItem(recentKey));
+        return Array.isArray(list) ? list.filter(item => /^\d+$/.test(item?.id || '') && typeof item.name === 'string') : [];
+      } catch { return []; }
+    },
+    set(list) { try { localStorage.setItem(recentKey, JSON.stringify(list.slice(0, 8))); } catch { /* Keep it for this visit only. */ } },
+    add(choice, tracks) {
+      const artwork = tracks.find(track => track.artwork)?.artwork || '';
+      this.set([{ id: choice.id, name: choice.name, count: tracks.length, artwork }, ...this.get().filter(item => item.id !== choice.id)]);
+    },
+    remove(id) { this.set(this.get().filter(item => item.id !== id)); }
+  };
+
+  function renderRecent() {
+    const list = recent.get();
+    $('#recent').hidden = !list.length;
+    $('#recent-list').replaceChildren(...list.map(item => {
+      const row = element('li');
+      const button = element('button');
+      button.type = 'button';
+      const text = element('span');
+      text.append(element('span', item.name, 'name'), element('span', item.count ? `${item.count} ${item.count === 1 ? 'clip' : 'clips'}` : '', 'by'));
+      button.append(thumbnail(item.artwork), text);
+      button.addEventListener('click', () => openRecent(item));
+      const remove = element('button', '', 'remove');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', `Remove ${item.name} from recent collections`);
+      remove.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"/></svg>';
+      remove.addEventListener('click', () => {
+        recent.remove(item.id);
+        renderRecent();
+        linkInput.focus({ preventScroll: true });
+      });
+      row.append(button, remove);
+      return row;
+    }));
+  }
+
+  function openRecent(item) {
+    const choice = { id: item.id, name: item.name, source: 'link' };
+    saved.set(choice);
+    if (openFromCache(choice)) return refresh();
+    load(choice);
+  }
+
+  linkForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (linkPlay.disabled) return;
+    const text = linkInput.value.trim();
+    const fail = message => { setLinkError(message); linkInput.focus(); };
+    if (!text) return fail('Paste a collection link first.');
+    setLinkError('');
+    setLinkBusy(true);
+    let result;
+    try {
+      result = await linkRequest(`url=${encodeURIComponent(text)}`);
+    } catch (error) {
+      setLinkBusy(false);
+      return fail(error.message);
+    }
+    setLinkBusy(false);
+    if (welcome.hidden) return; // The visitor left while it loaded.
+    if (!result.tracks.length) return fail('None of the clips in this collection have audio the player can use.');
+    const choice = { id: result.id, name: result.name, source: 'link' };
+    saved.set(choice);
+    cacheTracks(choice.id, result);
+    linkInput.value = '';
+    open(choice, result.tracks);
+    announceSkipped(result);
+  });
+  linkInput.addEventListener('input', () => { if (!linkError.hidden) setLinkError(''); });
+  $('#play-sample').addEventListener('click', () => playSample());
 
   // Where the install button goes. Chrome and Brave get the latest GitHub release zip. iPhone has no public build yet, so its link is empty. Add the TestFlight or App Store link there when one exists.
   const INSTALL_LINKS = { ios: '', chromium: 'https://github.com/0xSenzel/subtok/releases/latest/download/subtok-extension.zip' };
@@ -399,45 +502,6 @@
     return body;
   }
 
-  const showLinkForm = () => renderLinkForm('', '');
-
-  // Shows the form again after a mistake, with what the visitor pasted and a message.
-  function renderLinkForm(link, message) {
-    const form = element('form', '', 'link-form');
-    const label = element('label', 'Collection link');
-    label.htmlFor = 'collection-link';
-    const input = element('input');
-    Object.assign(input, { id: 'collection-link', type: 'url', value: link, placeholder: 'https://vt.tiktok.com/…', autocomplete: 'off', autocapitalize: 'off', spellcheck: false });
-    input.setAttribute('inputmode', 'url');
-    const submit = element('button', 'Play', 'primary');
-    submit.type = 'submit';
-    form.append(label, input, submit);
-    form.addEventListener('submit', async event => {
-      event.preventDefault();
-      const text = input.value.trim();
-      if (!text) return renderLinkForm(text, 'Paste a collection link first.');
-      working('Loading collection…');
-      let result;
-      try {
-        result = await linkRequest(`url=${encodeURIComponent(text)}`);
-      } catch (error) {
-        return renderLinkForm(text, error.message);
-      }
-      if (!result.tracks.length) return renderLinkForm(text, 'None of the clips in this collection have audio the player can use.');
-      const choice = { id: result.id, name: result.name, source: 'link' };
-      saved.set(choice);
-      cacheTracks(choice.id, result);
-      open(choice, result.tracks);
-      announceSkipped(result);
-    });
-    showNotice({
-      heading: 'Play a TikTok collection',
-      body: ['In TikTok, open a public collection, tap Share, then Copy link. Paste it here.', form, ...(message ? [{ error: message }] : [])],
-      actions: [{ label: 'Back', run: start }]
-    });
-    if (message) input.focus();
-  }
-
   // Player
 
   function time(seconds) {
@@ -465,6 +529,7 @@
   function open(choice, tracks) {
     collection = choice;
     all = tracks;
+    if (fromLink(choice)) recent.add(choice, tracks);
     loadHidden();
     loadFolders();
     queue = visibleTracks();

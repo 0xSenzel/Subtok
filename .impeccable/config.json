@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "web/index.html"
+        ],
+        "createdAt": "2026-11-13T15:59:05.573Z",
+        "reason": "Claude: the player's artwork <img> in #player .art is hidden and gets its src from app.js per clip; pre-existing, not a broken image"
+      }
+    ]
+  }
+}
