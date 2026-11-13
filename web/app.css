@@ -46,6 +46,11 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .page .body li + li { margin-top: 4px; }
 .page .body strong { color: var(--text); }
 .page .error { color: var(--error); }
+.page .body .link { display: inline; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; }
+.link-form { display: grid; gap: 8px; margin-top: 16px; }
+.link-form label { color: var(--label); font-size: 14px; font-weight: 650; }
+.link-form input { width: 100%; }
+.link-form .primary { color: var(--on-accent); background: var(--accent); border: 0; font-weight: 700; }
 .actions { display: grid; gap: 8px; margin-top: 24px; }
 .actions button, .primary {
   width: 100%;
@@ -194,7 +199,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .chip[aria-pressed="true"] { border-color: var(--accent); background: #f0c8981f; color: var(--accent); font-weight: 650; }
 .chip-add { border-style: dashed; }
 .folder-form { display: flex; gap: 8px; margin-top: 8px; }
-.folder-form input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #6b5848; border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; font-size: 16px; text-overflow: ellipsis; }
+.folder-form input, .link-form input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #6b5848; border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; font-size: 16px; text-overflow: ellipsis; }
 .folder-form button, .folder-manage button { flex: none; min-height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--muted); font-size: 14px; }
 .folder-form .folder-save { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 .folder-manage { display: flex; gap: 4px; margin-top: 2px; }

@@ -128,12 +128,22 @@
     return node;
   }
 
-  // `body` is a list of paragraphs, headings ({ heading }), and numbered steps ({ steps }).
+  // `body` is a list of paragraphs, headings ({ heading }), errors ({ error }), numbered steps ({ steps }),
+  // a paragraph that ends in a text button ({ text, link, run }), and ready-made elements, such as a form.
   function showNotice({ heading, body = [], actions = [], busy = false }) {
     $('#notice-title').textContent = heading;
     const content = notice.querySelector('.body');
     content.replaceChildren(...body.map(part => {
       if (typeof part === 'string') return element('p', part);
+      if (part instanceof Node) return part;
+      if (part.link) {
+        const line = element('p', `${part.text} `);
+        const button = element('button', part.link, 'link');
+        button.type = 'button';
+        button.addEventListener('click', part.run);
+        line.append(button);
+        return line;
+      }
       if (part.heading) return element('h2', part.heading);
       if (part.error) return element('p', part.error, 'error');
       const list = element('ol');
@@ -152,21 +162,24 @@
 
   const working = heading => showNotice({ heading, busy: true });
 
+  // Chrome and Brave run the extension. iPhone does too once there is a public build to install.
+  const extensionPlatform = () => platform() === 'chromium' || (platform() === 'ios' && !!INSTALL_LINKS.ios);
+
   function showWelcome() {
     const kind = platform();
     const hasExtension = !!document.documentElement.dataset.mcqExtension;
     const canDownload = !hasExtension && !!INSTALL_LINKS[kind];
-    const how = hasExtension ? 'Your Subtok extension is ready.'
-      : kind === 'chromium' ? 'To play your saved collections, add the free Subtok extension to Chrome or Brave. It takes about a minute.'
-        : kind === 'ios' && INSTALL_LINKS.ios ? 'To play your saved collections, install the Subtok app for Safari.'
-          : 'To play your saved collections, open subtok-player.vercel.app in Chrome or Brave on a computer.';
+    const download = { text: 'Private collections need the free Subtok extension.', link: kind === 'ios' ? 'Install Subtok' : 'Download extension', run: () => { getExtension(kind); showSetup(); } };
+    const body = hasExtension ? ['Play a public collection from its link, or play your own collections. Your Subtok extension is ready.']
+      : canDownload ? ['Play a public collection from its link, or try a short sample playlist.', download]
+        : ['Play a public collection from its link, or try a short sample playlist. Private collections need the Subtok extension in Chrome or Brave on a computer.'];
     showNotice({
       heading: 'Play your TikTok collections',
-      body: [`Try a short sample playlist now. ${how}`],
+      body,
       actions: [
         { label: 'Play sample', primary: true, run: playSample },
-        { label: 'Play my TikTok collections', run: startMine },
-        ...(canDownload ? [{ label: kind === 'ios' ? 'Install Subtok' : 'Download extension', run: () => { getExtension(kind); showSetup(); } }] : [])
+        { label: 'Paste a collection link', run: showLinkForm },
+        ...(extensionPlatform() || hasExtension ? [{ label: 'Play my TikTok collections', run: startMine }] : [])
       ]
     });
   }
@@ -220,22 +233,22 @@
     if ((kind === 'ios' || kind === 'ios-other') && !INSTALL_LINKS.ios) {
       return showNotice({
         heading: 'Subtok isn’t on iPhone yet',
-        body: ['You can play the sample here. To play your TikTok collections, use Chrome or Brave on a computer.'],
-        actions: [{ label: 'Play sample', primary: true, run: playSample }]
+        body: ['Public collections play from a link in any iPhone browser. Private collections need the Subtok extension in Chrome or Brave on a computer.'],
+        actions: [{ label: 'Play sample', primary: true, run: playSample }, { label: 'Paste a collection link', run: showLinkForm }]
       });
     }
     if (kind === 'ios-other') {
       return showNotice({
         heading: 'Open this page in Safari',
-        body: ['Open this page in Safari to play your TikTok collections. Safari is the only iPhone browser that runs Subtok.'],
-        actions: [{ label: 'Play sample', primary: true, run: playSample }]
+        body: ['Public collections play from a link in any browser, including this one. For private collections, open this page in Safari. Safari is the only iPhone browser that runs the Subtok extension.'],
+        actions: [{ label: 'Play sample', primary: true, run: playSample }, { label: 'Paste a collection link', run: showLinkForm }]
       });
     }
     if (kind === 'unsupported') {
       return showNotice({
         heading: 'Subtok doesn’t work in this browser yet',
-        body: ['Use Chrome or Brave on a computer, or Safari on iPhone, to play your TikTok collections.'],
-        actions: [{ label: 'Play sample', primary: true, run: playSample }]
+        body: ['Public collections play from a link in any browser, including this one. For private collections, use Chrome or Brave on a computer, or Safari on iPhone.'],
+        actions: [{ label: 'Play sample', primary: true, run: playSample }, { label: 'Paste a collection link', run: showLinkForm }]
       });
     }
     const steps = kind === 'ios'
@@ -301,7 +314,8 @@
       const account = await ask('account');
       if (!account.signedIn) return showSignIn();
       const choice = saved.get();
-      if (choice?.id) return await load(choice);
+      // A collection from a link isn't one of the extension's, so this goes on to the picker.
+      if (choice?.id && choice.source !== 'link') return await load(choice);
       await showPicker();
     } catch (error) {
       showError(error, startMine);
@@ -347,7 +361,7 @@
     working(`Loading ${choice.name}…`);
     let result;
     try {
-      result = await fetchTracks(choice.id);
+      result = await fetchTracks(choice);
     } catch (error) {
       return showError(error, () => load(choice));
     }
@@ -355,11 +369,73 @@
       return showNotice({
         heading: `${choice.name} has nothing to play`,
         body: ['None of the clips in this collection have audio the player can use.'],
-        actions: [{ label: 'Choose another collection', primary: true, run: showPicker }]
+        actions: [{ label: 'Choose another collection', primary: true, run: () => chooseAnother(choice) }]
       });
     }
     open(choice, result.tracks);
+    announceSkipped(result);
+  }
+
+  function announceSkipped(result) {
     if (result.skipped) status.textContent = `${result.skipped} ${result.skipped === 1 ? 'clip has' : 'clips have'} no playable audio and ${result.skipped === 1 ? 'is' : 'are'} left out.`;
+  }
+
+  // Collections from a link come from the server, not the extension. Saved choices from the extension picker have no source.
+  const fromLink = choice => choice?.source === 'link';
+  const chooseAnother = choice => (fromLink(choice) ? showLinkForm() : showPicker());
+
+  // Link flow. The server resolves the share link and lists the collection, so this needs no extension or TikTok sign-in.
+
+  async function linkRequest(query) {
+    let response;
+    try {
+      response = await fetch(`/api/collection?${query}`, { cache: 'no-store' });
+    } catch {
+      throw failure('Couldn’t reach Subtok. Check your connection and try again.');
+    }
+    let body = null;
+    try { body = await response.json(); } catch { /* Handled below. */ }
+    if (!response.ok || !Array.isArray(body?.tracks)) throw failure(body?.error || `Subtok couldn’t load this collection (error ${response.status}). Try again.`);
+    return body;
+  }
+
+  const showLinkForm = () => renderLinkForm('', '');
+
+  // Shows the form again after a mistake, with what the visitor pasted and a message.
+  function renderLinkForm(link, message) {
+    const form = element('form', '', 'link-form');
+    const label = element('label', 'Collection link');
+    label.htmlFor = 'collection-link';
+    const input = element('input');
+    Object.assign(input, { id: 'collection-link', type: 'url', value: link, placeholder: 'https://vt.tiktok.com/…', autocomplete: 'off', autocapitalize: 'off', spellcheck: false });
+    input.setAttribute('inputmode', 'url');
+    const submit = element('button', 'Play', 'primary');
+    submit.type = 'submit';
+    form.append(label, input, submit);
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text) return renderLinkForm(text, 'Paste a collection link first.');
+      working('Loading collection…');
+      let result;
+      try {
+        result = await linkRequest(`url=${encodeURIComponent(text)}`);
+      } catch (error) {
+        return renderLinkForm(text, error.message);
+      }
+      if (!result.tracks.length) return renderLinkForm(text, 'None of the clips in this collection have audio the player can use.');
+      const choice = { id: result.id, name: result.name, source: 'link' };
+      saved.set(choice);
+      cacheTracks(choice.id, result);
+      open(choice, result.tracks);
+      announceSkipped(result);
+    });
+    showNotice({
+      heading: 'Play a TikTok collection',
+      body: ['In TikTok, open a public collection, tap Share, then Copy link. Paste it here.', form, ...(message ? [{ error: message }] : [])],
+      actions: [{ label: 'Back', run: start }]
+    });
+    if (message) input.focus();
   }
 
   // Player
@@ -661,7 +737,7 @@
       refreshedAt = Date.now();
       status.textContent = 'Reconnecting to TikTok…';
       try {
-        const result = await fetchTracks(collection.id);
+        const result = await fetchTracks(collection);
         if (recovering !== selected || selection !== selected || player.hidden) return;
         if (result.tracks.length) {
           const previous = queue;
@@ -678,7 +754,7 @@
           return select(Math.min(index, queue.length - 1), true);
         }
       } catch {
-        showConnection(); // Playback goes on; the clip may be skipped below.
+        if (!fromLink(collection)) showConnection(); // Playback goes on; the clip may be skipped below.
       }
     }
     if (recovering !== selected || selection !== selected || player.hidden) return;
@@ -949,7 +1025,7 @@
       body: [`You have hidden all the clips in ${collection.name}. Unhide them to keep listening.`],
       actions: [
         { label: 'Unhide all', primary: true, run: () => { hidden.clear(); saveHidden(); restoreAll(); } },
-        { label: 'Choose another collection', run: showPicker }
+        { label: 'Choose another collection', run: () => chooseAnother(collection) }
       ]
     });
   }
@@ -1177,7 +1253,10 @@
   });
   $('#prev').addEventListener('click', goPrevious);
   next.addEventListener('click', goNext);
-  changeButton.addEventListener('click', () => (collection?.sample ? startMine() : showPicker()));
+  changeButton.addEventListener('click', () => {
+    if (collection?.sample) return extensionPlatform() ? startMine() : showLinkForm();
+    return chooseAnother(collection);
+  });
 
   seek.addEventListener('pointerdown', () => { dragging = true; });
   seek.addEventListener('input', () => { elapsed.textContent = time(Number(seek.value)); });
@@ -1360,8 +1439,13 @@
   function writeStore(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* Storage is full or blocked. */ } }
 
   // Every fresh list comes through here, so the cache stays current. Keep only the chosen collection's list.
-  async function fetchTracks(collectionId) {
-    const result = await ask('tracks', { collectionId });
+  async function fetchTracks(choice) {
+    const result = fromLink(choice) ? await linkRequest(`id=${encodeURIComponent(choice.id)}`) : await ask('tracks', { collectionId: choice.id });
+    cacheTracks(choice.id, result);
+    return result;
+  }
+
+  function cacheTracks(collectionId, result) {
     lastFresh = Date.now();
     if (result.tracks.length) {
       try {
@@ -1372,7 +1456,6 @@
       } catch { /* Ignore. */ }
       writeStore(CACHE_KEY + collectionId, { at: Date.now(), skipped: result.skipped || 0, tracks: result.tracks.slice(0, MAX_CACHED) });
     }
-    return result;
   }
 
   function openFromCache(choice) {
@@ -1435,16 +1518,22 @@
     refreshing = true;
     const choice = collection;
     try {
-      const account = await ask('account');
-      if (!account.signedIn) return showConnectionFix('signed-out');
-      const result = await fetchTracks(choice.id);
+      if (!fromLink(choice)) {
+        const account = await ask('account');
+        if (!account.signedIn) return showConnectionFix('signed-out');
+      }
+      const result = await fetchTracks(choice);
       if (collection !== choice || player.hidden) return;
       hideConnection();
       if (!result.tracks.length || !queue[index]) return;
       const added = mergeTracks(result.tracks);
       if (added) status.textContent = `${added} new ${added === 1 ? 'clip' : 'clips'} added.`;
     } catch {
-      if (collection === choice && !player.hidden) showConnection(); // The cached list keeps playing.
+      if (collection === choice && !player.hidden) {
+        // The cached list keeps playing. A link has no extension to blame, so it gets a quiet line.
+        if (fromLink(choice)) status.textContent = 'Couldn’t refresh from TikTok. Your saved list keeps playing.';
+        else showConnection();
+      }
     } finally { refreshing = false; }
   }
 
@@ -1513,6 +1602,7 @@
   }
 
   async function checkInBackground() {
+    if (fromLink(collection)) return refresh();
     const result = await checkConnection();
     if (collection && !player.hidden) showConnectionFix(result);
   }
