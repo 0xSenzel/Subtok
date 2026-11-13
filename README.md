@@ -27,7 +27,7 @@ Below the controls:
 
 ## Playback and storage
 
-Sign-in stays on TikTok. The extension reads collections in a TikTok tab through internal endpoints that can change. For a link, the `api/collection.js` function on Vercel resolves the share link and reads the collection from the same endpoint without a session. It fetches only `vt.tiktok.com`, `vm.tiktok.com`, and `www.tiktok.com`, and returns only the clip details the player needs. A Vercel Firewall rule limits `/api/collection` to 30 requests per minute from one IP address and answers `429` above that. The player then asks the visitor to wait a minute. The rule lives in the Vercel project's **Firewall** settings, not in this repository. The website streams audio from TikTok and tries a fresh address if playback fails or stalls. For the visible player, the extension fetches the current clip's video in pieces. The website plays it muted, in sync with the audio.
+Sign-in stays on TikTok. The extension reads collections in a TikTok tab through internal endpoints that can change. For a link, the `api/collection.js` function on Vercel resolves the share link and reads the collection from the same endpoint without a session. It fetches only `vt.tiktok.com`, `vm.tiktok.com`, and `www.tiktok.com`, and returns only the clip details the player needs. Vercel's CDN caches a successful `?id=` refresh for 60 seconds. Browsers and link lookups are never cached. A Vercel Firewall rule limits `/api/collection` to 30 requests per minute from one IP address and answers `429` above that. The player then asks the visitor to wait a minute. The rule lives in the Vercel project's **Firewall** settings, not in this repository. The website streams audio from TikTok and tries a fresh address if playback fails or stalls. For the visible player, the extension fetches the current clip's video in pieces. The website plays it muted, in sync with the audio.
 
 The browser saves the last loaded collection's details and links for up to 500 clips, plus resume positions, folders, hidden clips, and preferences. The open tab keeps up to three video clips, with a 20 MiB limit per clip. The player does not save media for offline playback.
 
@@ -40,6 +40,8 @@ node scripts/dev-server.js
 ```
 
 Open `http://127.0.0.1:8790/` to use the local player. The script uses only Node built-ins (Node 18 or later). `python3 -m http.server` serves the site but can't run the link function, so **Paste a collection link** fails with it. Set `PORT` to change the port. Set `HOST=0.0.0.0` to open the player from a phone on your network at `http://<your Mac's address>:8790/`. That also lets anyone on the network use the function, so use it only on a network you trust. The extension toolbar opens the hosted player. The extension accepts collection requests from the production domain and loopback development addresses. Any page at an allowed address can request collections through the extension.
+
+Run the tests with `node --test`. They use Node's built-in runner and never call TikTok.
 
 ### Desktop Chrome or Brave
 
