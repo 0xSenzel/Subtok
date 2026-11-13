@@ -97,6 +97,7 @@
   // Pages
 
   function show(page) {
+    stopReturnCheck();
     for (const section of [notice, picker, player]) section.hidden = section !== page;
     if (page !== player) {
       if (audio.hasAttribute('src')) {
@@ -157,25 +158,78 @@
     });
   }
 
-  function showInstall() {
+  // Where "Install Subtok" goes. Fill in a store link when one exists. Until then it opens the README setup steps.
+  const INSTALL_LINKS = { ios: '', chromium: '' };
+  const SETUP_DOCS = {
+    ios: 'https://github.com/0xSenzel/Subtok#iphone',
+    chromium: 'https://github.com/0xSenzel/Subtok#desktop-chrome-or-brave'
+  };
+
+  function platform() {
+    const agent = navigator.userAgent;
+    if (/iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1)) return 'ios';
+    if (/Android|Firefox/.test(agent) || (/Safari/.test(agent) && !/Chrome|Chromium|Edg/.test(agent))) return 'unsupported';
+    return 'chromium';
+  }
+
+  // The bridge is injected only when a page loads, so a missing extension needs a reload to be found.
+  // The flag tells the next load to go on with "my collections" instead of the welcome screen.
+  const intent = {
+    set() { try { sessionStorage.setItem('mcq.intent', 'mine'); } catch { /* The next load shows the welcome screen. */ } },
+    take() {
+      try {
+        const mine = sessionStorage.getItem('mcq.intent') === 'mine';
+        sessionStorage.removeItem('mcq.intent');
+        return mine;
+      } catch { return false; }
+    }
+  };
+  const recheck = () => { intent.set(); location.reload(); };
+
+  // Run `check` each time the visitor comes back to this tab, until another page shows.
+  let returnCheck = null;
+  function checkOnReturn(check) {
+    returnCheck = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', returnCheck);
+  }
+  function stopReturnCheck() {
+    if (returnCheck) document.removeEventListener('visibilitychange', returnCheck);
+    returnCheck = null;
+  }
+
+  function showSetup() {
+    const kind = platform();
+    if (kind === 'unsupported') {
+      return showNotice({
+        heading: 'Subtok doesn’t work in this browser yet',
+        body: ['Use Chrome or Brave on a computer, or Safari on iPhone, to play your TikTok collections.'],
+        actions: [{ label: 'Play sample', primary: true, run: () => open(SAMPLE, SAMPLE_TRACKS) }]
+      });
+    }
+    const steps = kind === 'ios'
+      ? [
+        'Install the Subtok app.',
+        'Open Settings › Apps › Safari › Extensions, and turn on Subtok.',
+        'Come back here. In Safari’s page menu, select Subtok › Always Allow on This Website.'
+      ]
+      : [
+        'Add Subtok to the browser.',
+        'Come back to this tab. The page checks again by itself.'
+      ];
+    intent.set(); // If the extension reloads this tab after installing, go on to the collections.
     showNotice({
-      heading: 'Install the extension',
+      heading: 'Set up the Subtok extension',
       body: [
-        'The player reads your TikTok collections, including private ones, through a small browser extension. You set it up once.',
-        { heading: 'iPhone and iPad' },
-        { steps: [
-          'Install the Subtok app.',
-          'Open Settings › Apps › Safari › Extensions, and turn on Subtok.',
-          'Come back here. In Safari’s page menu, select Subtok › Always Allow on This Website.'
-        ] },
-        { heading: 'Chrome or Brave on a computer' },
-        { steps: [
-          'Add Subtok to the browser.',
-          'Reload this page.'
-        ] }
+        'Subtok uses your TikTok sign-in to read your saved collections, including private ones.',
+        { heading: kind === 'ios' ? 'iPhone and iPad' : 'Chrome or Brave on a computer' },
+        { steps }
       ],
-      actions: [{ label: 'I’ve installed it', primary: true, run: () => location.reload() }]
+      actions: [
+        { label: 'Install Subtok', primary: true, run: () => window.open(INSTALL_LINKS[kind] || SETUP_DOCS[kind], '_blank', 'noopener') },
+        { label: 'Check again', run: recheck }
+      ]
     });
+    checkOnReturn(recheck);
   }
 
   function showSignIn() {
@@ -187,6 +241,7 @@
         { label: 'I’ve signed in', run: startMine }
       ]
     });
+    checkOnReturn(startMine);
   }
 
   function showError(error, retry) {
@@ -198,14 +253,14 @@
   }
 
   function start() {
-    if (saved.get()?.id) return startMine();
+    const cached = saved.get();
+    if (cached?.id && openFromCache(cached)) return refresh();
+    if (intent.take()) return startMine();
     showWelcome();
   }
 
   async function startMine() {
-    if (!await extensionInstalled()) return showInstall();
-    const cached = saved.get();
-    if (cached?.id && openFromCache(cached)) return refresh();
+    if (!await extensionInstalled()) return showSetup();
     working('Connecting to TikTok…');
     try {
       const account = await ask('account');

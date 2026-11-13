@@ -70,12 +70,16 @@ api.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-async function openSite() {
+// After a fresh install, an open player tab has no bridge, because content scripts load only with a page.
+// Reload it so it finds the extension.
+async function openSite(reload = false) {
   const [existing] = await api.tabs.query({ url: `${SITE_URL}*` });
-  if (existing) await api.tabs.update(existing.id, { active: true });
-  else await api.tabs.create({ url: SITE_URL });
+  if (existing) {
+    if (reload) await api.tabs.reload(existing.id);
+    await api.tabs.update(existing.id, { active: true });
+  } else await api.tabs.create({ url: SITE_URL });
 }
 api.action.onClicked.addListener(() => { openSite().catch(() => {}); });
 api.runtime.onInstalled.addListener(details => {
-  if (details.reason === 'install') openSite().catch(() => {});
+  if (details.reason === 'install') openSite(true).catch(() => {});
 });
