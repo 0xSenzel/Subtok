@@ -44,11 +44,19 @@ Open `http://127.0.0.1:8790/` to use the local player. The extension toolbar ope
 
 ### Desktop Chrome or Brave
 
-1. Open `chrome://extensions` or `brave://extensions`.
-2. Turn on **Developer mode**.
-3. Select **Load unpacked** and choose the `extension` folder.
+1. Download `subtok-extension.zip` from the [latest release](https://github.com/0xSenzel/subtok/releases/latest) and unzip it. To work from this repository instead, use the `extension` folder.
+2. Open `chrome://extensions` or `brave://extensions`.
+3. Turn on **Developer mode**.
+4. Select **Load unpacked** and choose the unzipped `subtok-extension` folder. Keep the folder; the browser loads the extension from it.
 
 The extension opens the website after installation. If a player tab is already open, the extension reloads it so the tab finds the extension.
+
+To publish a new version, raise `version` in `extension/manifest.json`, then build the zip and attach it to a release. Keep the asset name `subtok-extension.zip`; the player links to it through `releases/latest/download/`.
+
+```sh
+scripts/package-extension.sh
+gh release create v0.3.1 dist/subtok-extension.zip --title "Subtok extension 0.3.1"
+```
 
 ### iPhone
 

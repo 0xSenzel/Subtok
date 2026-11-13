@@ -163,8 +163,8 @@
     });
   }
 
-  // Where "Install Subtok" goes. Fill in a store link when one exists. Until then it opens the README setup steps.
-  const INSTALL_LINKS = { ios: '', chromium: '' };
+  // Where the install button goes. Chrome and Brave get the latest GitHub release zip. iPhone has no public build yet, so it opens the README.
+  const INSTALL_LINKS = { ios: '', chromium: 'https://github.com/0xSenzel/subtok/releases/latest/download/subtok-extension.zip' };
   const SETUP_DOCS = {
     ios: 'https://github.com/0xSenzel/subtok#iphone',
     chromium: 'https://github.com/0xSenzel/subtok#desktop-chrome-or-brave'
@@ -229,7 +229,9 @@
         'Come back here. In Safari’s page menu, select Subtok › Always Allow on This Website.'
       ]
       : [
-        'Add Subtok to the browser.',
+        'Select Download extension, then unzip subtok-extension.zip.',
+        'Open chrome://extensions (in Brave, brave://extensions) in a new tab, and turn on Developer mode.',
+        'Select Load unpacked and choose the unzipped subtok-extension folder. Keep the folder; the browser loads Subtok from it.',
         'Come back to this tab. The page checks again by itself.'
       ];
     intent.set(); // If the extension reloads this tab after installing, go on to the collections.
@@ -241,7 +243,7 @@
         { steps }
       ],
       actions: [
-        { label: 'Install Subtok', primary: true, run: () => window.open(INSTALL_LINKS[kind] || SETUP_DOCS[kind], '_blank', 'noopener') },
+        { label: kind === 'ios' ? 'Install Subtok' : 'Download extension', primary: true, run: () => window.open(INSTALL_LINKS[kind] || SETUP_DOCS[kind], '_blank', 'noopener') },
         { label: 'Check again', run: recheck },
         { label: 'Play sample', run: playSample }
       ]
