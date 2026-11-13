@@ -153,18 +153,31 @@
   const working = heading => showNotice({ heading, busy: true });
 
   function showWelcome() {
+    const kind = platform();
+    const hasExtension = !!document.documentElement.dataset.mcqExtension;
+    const canDownload = !hasExtension && !!INSTALL_LINKS[kind];
+    const how = hasExtension ? 'Your Subtok extension is ready.'
+      : kind === 'chromium' ? 'To play your saved collections, add the free Subtok extension to Chrome or Brave. It takes about a minute.'
+        : kind === 'ios' && INSTALL_LINKS.ios ? 'To play your saved collections, install the Subtok app for Safari.'
+          : 'To play your saved collections, open subtok-player.vercel.app in Chrome or Brave on a computer.';
     showNotice({
       heading: 'Play your TikTok collections',
-      body: ['Try a short sample playlist now. To play your saved collections, you add a browser extension once.'],
+      body: [`Try a short sample playlist now. ${how}`],
       actions: [
         { label: 'Play sample', primary: true, run: playSample },
-        { label: 'Play my TikTok collections', run: startMine }
+        { label: 'Play my TikTok collections', run: startMine },
+        ...(canDownload ? [{ label: kind === 'ios' ? 'Install Subtok' : 'Download extension', run: () => { getExtension(kind); showSetup(); } }] : [])
       ]
     });
   }
 
   // Where the install button goes. Chrome and Brave get the latest GitHub release zip. iPhone has no public build yet, so its link is empty. Add the TestFlight or App Store link there when one exists.
   const INSTALL_LINKS = { ios: '', chromium: 'https://github.com/0xSenzel/subtok/releases/latest/download/subtok-extension.zip' };
+  // The zip downloads in place, so this tab stays open and doesn't hide and recheck. The iPhone link opens a store page in a new tab.
+  function getExtension(kind) {
+    if (kind === 'chromium') location.assign(INSTALL_LINKS.chromium);
+    else window.open(INSTALL_LINKS[kind], '_blank', 'noopener');
+  }
 
   function platform() {
     const agent = navigator.userAgent;
@@ -246,7 +259,7 @@
         { steps }
       ],
       actions: [
-        { label: kind === 'ios' ? 'Install Subtok' : 'Download extension', primary: true, run: () => window.open(INSTALL_LINKS[kind], '_blank', 'noopener') },
+        { label: kind === 'ios' ? 'Install Subtok' : 'Download extension', primary: true, run: () => getExtension(kind) },
         { label: 'Check again', run: recheck },
         { label: 'Play sample', run: playSample }
       ]
