@@ -6,7 +6,7 @@ The [Subtok landing page](https://0xsenzel.github.io/Subtok/) explains how the p
 
 ## Listen
 
-1. Open the website. If the extension is missing, the website shows how to install it.
+1. Open the [Subtok player](https://subtok-player.vercel.app/). If the extension is missing, the player shows how to set it up.
 2. If you aren't signed in to TikTok in this browser, select **Open TikTok**, sign in, and return.
 3. Choose a collection. The website remembers it on this browser. To switch, select **Change**.
 4. On iPhone, use Safari. While audio plays, you can lock the phone or switch apps. If iOS shows Now Playing controls, use them to pause or skip.
@@ -35,7 +35,7 @@ Serve the website on port 8790:
 python3 -m http.server 8790 --bind 127.0.0.1 --directory web
 ```
 
-The extension runs its bridge only on `127.0.0.1` and `localhost`, and its toolbar button opens `http://127.0.0.1:8790/`. Before you host the website, add its address to `content_scripts` in `extension/manifest.json` and to `SITE_URL` and `SITE_ORIGIN` in `extension/background.js`. Any page on an allowed address can ask the extension for your collections, so list only addresses you control.
+Open `http://127.0.0.1:8790/` to use the local player. The extension toolbar opens the hosted player. The extension accepts collection requests from the production domain and loopback development addresses. Any page at an allowed address can request collections through the extension.
 
 ### Desktop Chrome or Brave
 
@@ -47,7 +47,7 @@ The extension opens the website after installation.
 
 ### iPhone
 
-Use Safari on iPhone, even if Chrome or Brave is your default browser. For the simulator on the same Mac, use the local address above. A physical iPhone needs a website address it can reach. Add that address to the extension's allowed origins as described above.
+Use Safari on iPhone, even if Chrome or Brave is your default browser. Open the hosted player on a physical iPhone. In the simulator on the same Mac, you can also use the local address above.
 
 Generate a Safari extension app in Xcode from the repository root. [Apple's Safari extension guide](https://developer.apple.com/documentation/safariservices/running-your-safari-web-extension)
 

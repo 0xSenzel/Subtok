@@ -3,8 +3,8 @@
 // Answers the player website's requests. TikTok only honors the listener's session for
 // requests made from a TikTok page, so this reuses an open TikTok tab or opens a hidden one.
 const api = globalThis.browser || globalThis.chrome;
-const SITE_URL = 'http://127.0.0.1:8790/';
-const SITE_ORIGIN = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//;
+const SITE_URL = 'https://subtok-player.vercel.app/';
+const SITE_ORIGIN = /^(https:\/\/subtok-player\.vercel\.app|http:\/\/(127\.0\.0\.1|localhost)(:\d+)?)\//;
 const TIKTOK_URL = 'https://www.tiktok.com/';
 const IDLE_CLOSE_MS = 30000;
 let readerTabId = null;

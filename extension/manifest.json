@@ -14,7 +14,7 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["http://127.0.0.1/*", "http://localhost/*"],
+      "matches": ["https://subtok-player.vercel.app/*", "http://127.0.0.1/*", "http://localhost/*"],
       "js": ["bridge.js"],
       "run_at": "document_start"
     }
