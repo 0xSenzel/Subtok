@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#181818">
+  <meta name="description" content="Subtok is a side project that plays saved TikTok clips as a playlist using a website and a browser extension.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Subtok · Saved clips as a playlist">
+  <meta property="og:description" content="An interview portfolio project about browser extensions, private collections, and background playback.">
+  <link rel="icon" href="./assets/cover.png">
+  <link rel="stylesheet" href="./style.css">
+  <title>Subtok · Saved clips as a playlist</title>
+</head>
+<body>
+  <a class="skip-link button-md" href="#main">Skip to content</a>
+  <header class="wrap masthead">
+    <span class="wordmark title-3">
+      <img src="./assets/cover.png" width="32" height="32" alt="">
+      Subtok
+    </span>
+    <span class="project-type caption-2">Personal side project</span>
+  </header>
+
+  <main id="main" class="wrap">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title" class="heading-1">Play your saved clips as a playlist.</h1>
+        <p class="body-3">I built a web player for the edits and mixes I saved on TikTok. A browser extension reads my collections, including private ones, through my existing session.</p>
+        <a class="button button-md" href="#how-it-works">See how it works <span aria-hidden="true">↓</span></a>
+        <p class="caption-2 proof">Tested in Chromium, desktop Brave, and Safari on an iPhone simulator.</p>
+      </div>
+
+      <figure class="preview">
+        <img src="./assets/player.png" width="780" height="1570" alt="Subtok player showing cover art, a seek bar, and playback controls for the sample Night Drive collection." fetchpriority="high">
+        <figcaption class="caption-2">The player with sample clips.</figcaption>
+      </figure>
+    </section>
+
+    <section id="how-it-works" class="section" aria-labelledby="flow-title">
+      <h2 id="flow-title" class="heading-3">How it works</h2>
+      <ol class="steps">
+        <li>
+          <h3 class="title-1">Sign in on TikTok</h3>
+          <p class="body-3">The extension reads saved collections through the browser’s existing session.</p>
+        </li>
+        <li>
+          <h3 class="title-1">Choose a collection</h3>
+          <p class="body-3">The website builds a queue and remembers your place when you return.</p>
+        </li>
+        <li>
+          <h3 class="title-1">Play the queue</h3>
+          <p class="body-3">The player streams audio from TikTok. While the page is visible, it can play the muted video in sync.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section build-note" aria-labelledby="build-title">
+      <h2 id="build-title" class="heading-3">What I built</h2>
+      <p class="body-3">The website handles the queue, playback, and resume. The extension handles collection access. If an audio link expires or playback stalls, the player tries a fresh link for the same clip.</p>
+      <p class="body-3">Safari on an iPhone simulator showed live video in sync with audio. Lock screen artwork and controls still need a test on a physical iPhone.</p>
+    </section>
+  </main>
+</body>
+</html>
