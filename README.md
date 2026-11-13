@@ -2,8 +2,6 @@
 
 Play your saved TikTok collections as playlists. The website in `web/` is the player. Any browser can play a public collection from its share link, through the function in `api/`. The browser extension in `extension/` also plays private collections, through your TikTok session.
 
-The [Subtok landing page](https://0xsenzel.github.io/subtok/) explains how the player works and shows it with sample clips.
-
 ## Listen
 
 1. Open the [Subtok player](https://subtok-player.vercel.app/). To play a public collection in any browser, including any iPhone or Android browser, paste its link into the field and select **Play**. In TikTok, open the collection, select Share, then Copy link. There is no extension and no sign-in. A private collection has no share link, so it needs the extension.
@@ -29,7 +27,7 @@ Below the controls:
 
 ## Playback and storage
 
-Sign-in stays on TikTok. The extension reads collections in a TikTok tab through internal endpoints that can change. For a link, the `api/collection.js` function on Vercel resolves the share link and reads the collection from the same endpoint without a session. It fetches only `vt.tiktok.com`, `vm.tiktok.com`, and `www.tiktok.com`, and returns only the clip details the player needs. It has no rate limit yet. The website streams audio from TikTok and tries a fresh address if playback fails or stalls. For the visible player, the extension fetches the current clip's video in pieces. The website plays it muted, in sync with the audio.
+Sign-in stays on TikTok. The extension reads collections in a TikTok tab through internal endpoints that can change. For a link, the `api/collection.js` function on Vercel resolves the share link and reads the collection from the same endpoint without a session. It fetches only `vt.tiktok.com`, `vm.tiktok.com`, and `www.tiktok.com`, and returns only the clip details the player needs. A Vercel Firewall rule limits `/api/collection` to 30 requests per minute from one IP address and answers `429` above that. The player then asks the visitor to wait a minute. The rule lives in the Vercel project's **Firewall** settings, not in this repository. The website streams audio from TikTok and tries a fresh address if playback fails or stalls. For the visible player, the extension fetches the current clip's video in pieces. The website plays it muted, in sync with the audio.
 
 The browser saves the last loaded collection's details and links for up to 500 clips, plus resume positions, folders, hidden clips, and preferences. The open tab keeps up to three video clips, with a 20 MiB limit per clip. The player does not save media for offline playback.
 

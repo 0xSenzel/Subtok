@@ -496,6 +496,8 @@
     } catch {
       throw failure('Couldn’t reach Subtok. Check your connection and try again.');
     }
+    // Vercel's firewall answers 429 when one address sends too many requests. Its page isn't JSON.
+    if (response.status === 429) throw failure('Too many requests from this network. Wait a minute, then try again.');
     let body = null;
     try { body = await response.json(); } catch { /* Handled below. */ }
     if (!response.ok || !Array.isArray(body?.tracks)) throw failure(body?.error || `Subtok couldn’t load this collection (error ${response.status}). Try again.`);
