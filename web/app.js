@@ -18,6 +18,7 @@
   const next = $('#next');
   const status = $('#status');
   const queueList = $('#queue');
+  const changeButton = $('#change');
   const storageKey = 'mcq.collection';
   const icons = {
     Play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>',
@@ -36,6 +37,25 @@
   let playbackTimer = 0;
   let playbackPosition = 0;
   let recovering = null;
+
+  // Sample playlist. It plays from this site, so it needs no extension and never touches TikTok.
+  const sampleUrl = file => new URL(`samples/${file}`, location.href).href;
+  const SAMPLE = { id: 'sample', name: 'Sample playlist', sample: true };
+  const SAMPLE_TRACKS = [
+    ['sunrise', 'Sunrise'],
+    ['night-drive', 'Night drive'],
+    ['slow-tide', 'Slow tide'],
+    ['city-lights', 'City lights']
+  ].map(([file, name]) => ({
+    id: `sample-${file}`,
+    title: name,
+    artist: 'Subtok sample',
+    duration: 24,
+    artwork: new URL('cover.png', location.href).href,
+    motion: '',
+    video: '',
+    audio: sampleUrl(`${file}.m4a`)
+  }));
 
   const saved = {
     get() { try { return JSON.parse(localStorage.getItem(storageKey)); } catch { return null; } },
@@ -126,6 +146,17 @@
 
   const working = heading => showNotice({ heading, busy: true });
 
+  function showWelcome() {
+    showNotice({
+      heading: 'Play your TikTok collections',
+      body: ['Hear a short sample playlist first, or connect your saved TikTok collections. Connecting takes a one-time browser extension.'],
+      actions: [
+        { label: 'Play sample', primary: true, run: () => open(SAMPLE, SAMPLE_TRACKS) },
+        { label: 'Play my TikTok collections', run: startMine }
+      ]
+    });
+  }
+
   function showInstall() {
     showNotice({
       heading: 'Install the extension',
@@ -153,7 +184,7 @@
       body: ['Sign in to TikTok in this browser so the player can read your collections. Then come back here.'],
       actions: [
         { label: 'Open TikTok', primary: true, run: () => window.open('https://www.tiktok.com/login', '_blank', 'noopener') },
-        { label: 'I’ve signed in', run: () => start() }
+        { label: 'I’ve signed in', run: startMine }
       ]
     });
   }
@@ -166,7 +197,12 @@
     });
   }
 
-  async function start() {
+  function start() {
+    if (saved.get()?.id) return startMine();
+    showWelcome();
+  }
+
+  async function startMine() {
     if (!await extensionInstalled()) return showInstall();
     const cached = saved.get();
     if (cached?.id && openFromCache(cached)) return refresh();
@@ -178,7 +214,7 @@
       if (choice?.id) return await load(choice);
       await showPicker();
     } catch (error) {
-      showError(error, start);
+      showError(error, startMine);
     }
   }
 
@@ -269,6 +305,7 @@
     failures = 0;
     show(player);
     collectionName.textContent = choice.name;
+    changeButton.textContent = choice.sample ? 'Use my collections' : 'Change';
     renderQueue();
     if (!queue.length) return showAllHidden();
     const first = resumeIndex(choice, queue);
@@ -529,7 +566,7 @@
     const position = audio.currentTime;
     recovering = selected;
     clearTimeout(playbackTimer);
-    if (Date.now() - refreshedAt > 60000) {
+    if (!collection.sample && Date.now() - refreshedAt > 60000) {
       refreshedAt = Date.now();
       status.textContent = 'Reconnecting to TikTok…';
       try {
@@ -1047,7 +1084,7 @@
   });
   $('#prev').addEventListener('click', goPrevious);
   next.addEventListener('click', goNext);
-  $('#change').addEventListener('click', showPicker);
+  changeButton.addEventListener('click', () => (collection?.sample ? startMine() : showPicker()));
 
   seek.addEventListener('pointerdown', () => { dragging = true; });
   seek.addEventListener('input', () => { elapsed.textContent = time(Number(seek.value)); });
@@ -1254,7 +1291,7 @@
   }
 
   function saveResume() {
-    if (!collection || !queue[index]) return;
+    if (!collection || collection.sample || !queue[index]) return;
     if (resumeAt?.id === queue[index].id) return; // Not sought yet; keep the earlier position.
     writeStore(RESUME_KEY + collection.id, { id: queue[index].id, t: audio.currentTime || 0 });
   }
@@ -1301,7 +1338,7 @@
   }
 
   async function refresh() {
-    if (refreshing || !collection || player.hidden) return;
+    if (refreshing || !collection || collection.sample || player.hidden) return;
     refreshing = true;
     const choice = collection;
     try {
