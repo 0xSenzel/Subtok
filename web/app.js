@@ -154,7 +154,7 @@
   function showWelcome() {
     showNotice({
       heading: 'Play your TikTok collections',
-      body: ['Hear a short sample playlist first, or connect your saved TikTok collections. Connecting takes a one-time browser extension.'],
+      body: ['Try a short sample playlist now. To play your saved collections, you add a browser extension once.'],
       actions: [
         { label: 'Play sample', primary: true, run: () => open(SAMPLE, SAMPLE_TRACKS) },
         { label: 'Play my TikTok collections', run: startMine }

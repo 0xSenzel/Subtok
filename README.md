@@ -6,14 +6,19 @@ The [Subtok landing page](https://0xsenzel.github.io/subtok/) explains how the p
 
 ## Listen
 
-1. Open the [Subtok player](https://subtok-player.vercel.app/). If the extension is missing, the player shows how to set it up.
-2. If you aren't signed in to TikTok in this browser, select **Open TikTok**, sign in, and return.
-3. Choose a collection. The website remembers it on this browser. To switch, select **Change**.
-4. On iPhone, use Safari. While audio plays, you can lock the phone or switch apps. If iOS shows Now Playing controls, use them to pause or skip.
+1. Open the [Subtok player](https://subtok-player.vercel.app/). It starts with a sample playlist, so you can listen and skip tracks before you install anything. Select **Play sample**.
+2. To hear your own collections, select **Play my TikTok collections**. If the extension is missing, the player shows the setup steps for your browser and checks again each time you return to the tab.
+3. If you aren't signed in to TikTok in this browser, select **Open TikTok**, sign in, and return.
+4. Choose a collection. The website remembers it on this browser. To switch, select **Change**. While the sample plays, select **Use my collections** instead.
+5. On iPhone, use Safari. While audio plays, you can lock the phone or switch apps. If iOS shows Now Playing controls, use them to pause or skip.
 
 The player shows the clip video while the page is visible and falls back to cover art when the video is unavailable. On iPhone, Safari can send still artwork and playback commands to iOS. iOS chooses the Now Playing layout. The website can't put moving video in the Dynamic Island.
 
-The player opens your last collection instantly from a saved copy and resumes where you stopped. It refreshes from TikTok in the background, so new saves appear on their own. Below the controls:
+The player opens your last collection instantly from a saved copy and resumes where you stopped. It refreshes from TikTok in the background, so new saves appear on their own.
+
+If the extension stops responding while you listen, the music keeps playing and a message appears under the controls. Select **Check connection** to find the cause. The player then tells you the fix, such as reloading the page, signing in to TikTok, or allowing Subtok on `tiktok.com`.
+
+Below the controls:
 
 - **Shuffle** and **Repeat** (off, all, one) apply to the lock screen buttons too and are remembered.
 - **Sleep** pauses after 15, 30, or 60 minutes, or at the end of the clip.
@@ -43,7 +48,7 @@ Open `http://127.0.0.1:8790/` to use the local player. The extension toolbar ope
 2. Turn on **Developer mode**.
 3. Select **Load unpacked** and choose the `extension` folder.
 
-The extension opens the website after installation.
+The extension opens the website after installation. If a player tab is already open, the extension reloads it so the tab finds the extension.
 
 ### iPhone
 
