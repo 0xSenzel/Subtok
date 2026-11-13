@@ -157,7 +157,7 @@
       heading: 'Play your TikTok collections',
       body: ['Try a short sample playlist now. To play your saved collections, you add a browser extension once.'],
       actions: [
-        { label: 'Play sample', primary: true, run: () => open(SAMPLE, SAMPLE_TRACKS) },
+        { label: 'Play sample', primary: true, run: playSample },
         { label: 'Play my TikTok collections', run: startMine }
       ]
     });
@@ -166,13 +166,15 @@
   // Where "Install Subtok" goes. Fill in a store link when one exists. Until then it opens the README setup steps.
   const INSTALL_LINKS = { ios: '', chromium: '' };
   const SETUP_DOCS = {
-    ios: 'https://github.com/0xSenzel/Subtok#iphone',
-    chromium: 'https://github.com/0xSenzel/Subtok#desktop-chrome-or-brave'
+    ios: 'https://github.com/0xSenzel/subtok#iphone',
+    chromium: 'https://github.com/0xSenzel/subtok#desktop-chrome-or-brave'
   };
 
   function platform() {
     const agent = navigator.userAgent;
-    if (/iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1)) return 'ios';
+    if (/iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1)) {
+      return /CriOS|FxiOS|EdgiOS|OPiOS/.test(agent) ? 'ios-other' : 'ios'; // Only Safari runs the extension on iOS.
+    }
     if (/Android|Firefox/.test(agent) || (/Safari/.test(agent) && !/Chrome|Chromium|Edg/.test(agent))) return 'unsupported';
     return 'chromium';
   }
@@ -190,6 +192,8 @@
     }
   };
   const recheck = () => { intent.set(); location.reload(); };
+  // The setup screen sets the flag, so leaving it for the sample also clears the flag. Otherwise every reload returns to setup.
+  const playSample = () => { intent.take(); open(SAMPLE, SAMPLE_TRACKS); };
 
   // Run `check` each time the visitor comes back to this tab, until another page shows.
   let returnCheck = null;
@@ -204,11 +208,18 @@
 
   function showSetup() {
     const kind = platform();
+    if (kind === 'ios-other') {
+      return showNotice({
+        heading: 'Open this page in Safari',
+        body: ['Open this page in Safari to play your TikTok collections. Safari is the only iPhone browser that runs Subtok.'],
+        actions: [{ label: 'Play sample', primary: true, run: playSample }]
+      });
+    }
     if (kind === 'unsupported') {
       return showNotice({
         heading: 'Subtok doesn’t work in this browser yet',
         body: ['Use Chrome or Brave on a computer, or Safari on iPhone, to play your TikTok collections.'],
-        actions: [{ label: 'Play sample', primary: true, run: () => open(SAMPLE, SAMPLE_TRACKS) }]
+        actions: [{ label: 'Play sample', primary: true, run: playSample }]
       });
     }
     const steps = kind === 'ios'
@@ -231,7 +242,8 @@
       ],
       actions: [
         { label: 'Install Subtok', primary: true, run: () => window.open(INSTALL_LINKS[kind] || SETUP_DOCS[kind], '_blank', 'noopener') },
-        { label: 'Check again', run: recheck }
+        { label: 'Check again', run: recheck },
+        { label: 'Play sample', run: playSample }
       ]
     });
     checkOnReturn(recheck);
@@ -1450,7 +1462,7 @@
       case 'missing':
         return showBanner('Turn on the Subtok extension, then reload this page.', reloadButton(), checkButton());
       case 'reload':
-        return showBanner('Subtok was updated. Reload this page to reconnect.', reloadButton(), checkButton());
+        return showBanner('Subtok was updated or turned off. Reload this page to reconnect.', reloadButton(), checkButton());
       case 'signed-out':
         return showBanner('Sign in to TikTok in this browser.',
           { label: 'Open TikTok', primary: true, run: () => window.open('https://www.tiktok.com/login', '_blank', 'noopener') }, checkButton());

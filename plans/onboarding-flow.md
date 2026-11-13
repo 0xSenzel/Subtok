@@ -110,7 +110,7 @@ Wrap `sessionStorage` access in `try/catch`, like the existing `localStorage` he
   - `recover()` fails to fetch fresh tracks.
 - **Check connection** runs `checkConnection()` and replaces the banner text with one fix:
   - `missing`: "Turn on the Subtok extension, then reload this page." plus a **Reload** button. Before the reload, call `saveResume()`.
-  - `reload`: "Subtok was updated. Reload this page to reconnect." plus **Reload**.
+  - `reload`: "Subtok was updated or turned off. Reload this page to reconnect." plus **Reload**. A turned-off extension also leaves an orphaned bridge, so this case covers it. After the reload, it falls into `missing`.
   - `signed-out`: "Sign in to TikTok in this browser." plus **Open TikTok**.
   - `tiktok`: "The extension can’t reach TikTok. Allow Subtok on tiktok.com in your extension settings."
   - `ok`: hide the banner and call `refresh()`.
@@ -131,7 +131,7 @@ Verify each one in a browser and record the result.
 4. Load the unpacked extension while the player tab is open. The tab reloads by itself and continues to the picker or sign-in screen without a click on the welcome screen.
 5. With the extension and TikTok signed in, **Play my TikTok collections** goes straight to the picker.
 6. Choose a collection, play to the middle of clip 2, and reload. The player opens clip 2 at the saved time.
-7. With a collection playing, disable the extension in `chrome://extensions`. The next `refresh()` or a manual **Check connection** shows the banner. Audio keeps playing. The fix text matches the `missing` case.
+7. With a collection playing, disable the extension in `chrome://extensions`. The next `refresh()` or a manual **Check connection** shows the banner. Audio keeps playing. The page still has an orphaned bridge, so the fix text matches the `reload` case. After a page reload, the banner shows the `missing` case.
 8. Reload the extension in `chrome://extensions` while the player is open. **Check connection** shows the `reload` case within 8 s, not 60 s.
 9. With a mobile Safari user agent, setup shows only the iPhone steps. With a Firefox user agent, the unsupported screen shows.
 10. Everything in this list also works at `http://127.0.0.1:8790/` (CSP check for the samples).
