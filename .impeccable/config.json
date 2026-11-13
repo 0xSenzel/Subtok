@@ -11,6 +11,12 @@
         ],
         "createdAt": "2026-11-13T15:59:05.573Z",
         "reason": "Claude: the player's artwork <img> in #player .art is hidden and gets its src from app.js per clip; pre-existing, not a broken image"
+      },
+      {
+        "rule": "overused-font",
+        "value": "geist",
+        "createdAt": "2026-11-13T16:08:15.581Z",
+        "reason": "Claude: Geist is the brand face the Subtok landing page already ships (docs/style.css); reused so the player matches it"
       }
     ]
   }
