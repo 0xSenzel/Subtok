@@ -57,6 +57,10 @@
         <button type="button" id="sleep" aria-label="Sleep timer: off" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span class="state">Sleep</span></button>
       </div>
       <p id="status" role="status"></p>
+      <div id="connection" class="connection" role="status" hidden>
+        <p id="connection-message"></p>
+        <div id="connection-actions" class="connection-actions"></div>
+      </div>
       <h3 id="queue-title">Queue</h3>
       <div class="folders">
         <div id="folder-chips" class="chips" role="group" aria-label="Folders"></div>

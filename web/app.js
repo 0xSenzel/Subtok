@@ -71,16 +71,20 @@
     pending.get(event.data.id)(event.data);
     pending.delete(event.data.id);
   });
+  // A failed request carries `error.code` when the cause is known: missing, reload, or timeout.
+  const failure = (message, code) => Object.assign(new Error(message), { code });
+  const quickTypes = new Set(['hello', 'account']); // These answer fast, so a silent extension shows up sooner.
   function ask(type, payload) {
+    if (!document.documentElement.dataset.mcqExtension) return Promise.reject(failure('The Subtok extension is not turned on.', 'missing'));
     return new Promise((resolve, reject) => {
       const id = ++requestId;
       const timer = setTimeout(() => {
         pending.delete(id);
-        reject(new Error('The extension took too long to answer. Try again.'));
-      }, 60000);
+        reject(failure('The extension took too long to answer. Try again.', 'timeout'));
+      }, quickTypes.has(type) ? 8000 : 60000);
       pending.set(id, reply => {
         clearTimeout(timer);
-        if (reply.error) reject(new Error(reply.error));
+        if (reply.error) reject(failure(reply.error, reply.code));
         else resolve(reply.result);
       });
       window.postMessage({ source: 'mcq-page', id, type, payload }, location.origin);
@@ -254,7 +258,7 @@
 
   function start() {
     const cached = saved.get();
-    if (cached?.id && openFromCache(cached)) return refresh();
+    if (cached?.id && openFromCache(cached)) return checkInBackground();
     if (intent.take()) return startMine();
     showWelcome();
   }
@@ -359,6 +363,7 @@
     queue = visibleTracks();
     failures = 0;
     show(player);
+    hideConnection();
     collectionName.textContent = choice.name;
     changeButton.textContent = choice.sample ? 'Use my collections' : 'Change';
     renderQueue();
@@ -641,7 +646,9 @@
           }
           return select(Math.min(index, queue.length - 1), true);
         }
-      } catch { /* Fall through and skip the clip. */ }
+      } catch {
+        showConnection(); // Playback goes on; the clip may be skipped below.
+      }
     }
     if (recovering !== selected || selection !== selected || player.hidden) return;
     recovering = null;
@@ -1398,16 +1405,85 @@
     const choice = collection;
     try {
       const account = await ask('account');
-      if (!account.signedIn) {
-        if (audio.paused) showSignIn();
-        else status.textContent = 'TikTok signed you out. Sign in again to refresh your collection.';
-        return;
-      }
+      if (!account.signedIn) return showConnectionFix('signed-out');
       const result = await fetchTracks(choice.id);
-      if (collection !== choice || player.hidden || !result.tracks.length || !queue[index]) return;
+      if (collection !== choice || player.hidden) return;
+      hideConnection();
+      if (!result.tracks.length || !queue[index]) return;
       const added = mergeTracks(result.tracks);
       if (added) status.textContent = `${added} new ${added === 1 ? 'clip' : 'clips'} added.`;
-    } catch { /* The cached list keeps playing; try again later. */ } finally { refreshing = false; }
+    } catch {
+      if (collection === choice && !player.hidden) showConnection(); // The cached list keeps playing.
+    } finally { refreshing = false; }
+  }
+
+  // Connection banner. It sits under the player, so a lost connection never stops the music.
+
+  const connection = $('#connection');
+  const connectionMessage = $('#connection-message');
+  const connectionActions = $('#connection-actions');
+
+  function hideConnection() { connection.hidden = true; }
+
+  function showBanner(message, ...buttons) {
+    connectionMessage.textContent = message;
+    connectionActions.replaceChildren(...buttons.map(({ label, primary, run }) => {
+      const button = element('button', label, primary ? 'primary' : '');
+      button.type = 'button';
+      button.addEventListener('click', run);
+      return button;
+    }));
+    connection.hidden = false;
+  }
+
+  const checkButton = () => ({ label: 'Check connection', run: runCheck });
+  const reloadButton = () => ({ label: 'Reload', primary: true, run: () => { saveResume(); location.reload(); } });
+
+  // The first message, before the visitor chooses to check.
+  function showConnection() {
+    showBanner('Subtok lost its connection to TikTok. Your music keeps playing.', checkButton());
+  }
+
+  function showConnectionFix(result) {
+    switch (result) {
+      case 'missing':
+        return showBanner('Turn on the Subtok extension, then reload this page.', reloadButton(), checkButton());
+      case 'reload':
+        return showBanner('Subtok was updated. Reload this page to reconnect.', reloadButton(), checkButton());
+      case 'signed-out':
+        return showBanner('Sign in to TikTok in this browser.',
+          { label: 'Open TikTok', primary: true, run: () => window.open('https://www.tiktok.com/login', '_blank', 'noopener') }, checkButton());
+      case 'tiktok':
+        return showBanner('The extension can’t reach TikTok. Allow Subtok on tiktok.com in your extension settings.', checkButton());
+      default:
+        hideConnection();
+        return refresh();
+    }
+  }
+
+  // Tell the visitor which part of the chain is broken: the extension, the sign-in, or TikTok itself.
+  async function checkConnection() {
+    try {
+      await ask('hello');
+    } catch (error) {
+      return error.code === 'reload' ? 'reload' : 'missing';
+    }
+    try {
+      return (await ask('account')).signedIn ? 'ok' : 'signed-out';
+    } catch (error) {
+      return ['missing', 'reload'].includes(error.code) ? error.code : 'tiktok';
+    }
+  }
+
+  async function runCheck() {
+    connectionMessage.textContent = 'Checking…';
+    connectionActions.replaceChildren();
+    showConnectionFix(await checkConnection());
+  }
+
+  async function checkInBackground() {
+    const result = await checkConnection();
+    if (collection && !player.hidden) showConnectionFix(result);
   }
 
   audio.addEventListener('playing', () => {

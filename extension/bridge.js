@@ -9,9 +9,16 @@
   window.addEventListener('message', event => {
     const data = event.data;
     if (event.source !== window || data?.source !== 'mcq-page' || typeof data.type !== 'string') return;
-    Promise.resolve(api.runtime.sendMessage({ type: data.type, payload: data.payload }))
-      .then(response => reply(data.id, response || { error: 'The extension did not respond.' }),
-        error => reply(data.id, { error: String(error?.message || error) }));
+    // After the extension updates or reloads, this script is orphaned. Its calls throw or fail, and the page needs a reload.
+    const orphaned = { error: 'The extension was updated. Reload this page to reconnect.', code: 'reload' };
+    let sent;
+    try {
+      sent = Promise.resolve(api.runtime.sendMessage({ type: data.type, payload: data.payload }));
+    } catch {
+      return reply(data.id, orphaned);
+    }
+    sent.then(response => reply(data.id, response || { error: 'The extension did not respond.' }),
+      error => reply(data.id, /invalidated|receiving end/i.test(String(error?.message)) ? orphaned : { error: String(error?.message || error) }));
   });
   window.postMessage({ source: 'mcq-ext', type: 'ready' }, window.location.origin);
 })();
