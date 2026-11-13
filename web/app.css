@@ -22,10 +22,14 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 main {
+  --pad-left: max(20px, env(safe-area-inset-left));
+  --pad-right: max(20px, env(safe-area-inset-right));
   width: min(100%, 440px);
   margin: 0 auto;
-  padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  padding: max(16px, env(safe-area-inset-top)) var(--pad-right) max(24px, env(safe-area-inset-bottom)) var(--pad-left);
 }
+/* Safari's floating toolbar covers the last rows. It reports no bottom inset, so leave room for it. */
+@media (pointer: coarse) { main { padding-bottom: calc(max(24px, env(safe-area-inset-bottom)) + 72px); } }
 [hidden] { display: none !important; }
 h1, h2, h3, p { margin: 0; }
 button { font: inherit; color: inherit; cursor: pointer; }
@@ -74,7 +78,13 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
 
 /* Player */
-#player header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-bottom: clamp(8px, 2dvh, 24px); }
+/* The header stays in view while the queue scrolls. Safari keeps sticky elements below the status bar, even though env() reports no top inset there. The side margins let its background reach the screen edges. */
+#player header { position: sticky; top: env(safe-area-inset-top); z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin: 0 calc(-1 * var(--pad-right)) clamp(8px, 2dvh, 24px) calc(-1 * var(--pad-left)); padding: 0 var(--pad-right) 0 var(--pad-left); background: var(--bg); }
+/* At the top of the page the header would show as a dark box on the lighter gradient, so its fill fades in as the page starts to scroll. */
+@keyframes header-fill { from { background-color: transparent; } to { background-color: var(--bg); } }
+@supports (animation-timeline: scroll()) {
+  #player header { background: none; animation: header-fill linear both; animation-timeline: scroll(root); animation-range: 0 16px; }
+}
 .collection { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; color: var(--label); }
 .text { min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--muted); font-size: 14px; }
 .art {
@@ -184,7 +194,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .chip[aria-pressed="true"] { border-color: var(--accent); background: #f0c8981f; color: var(--accent); font-weight: 650; }
 .chip-add { border-style: dashed; }
 .folder-form { display: flex; gap: 8px; margin-top: 8px; }
-.folder-form input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #6b5848; border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; font-size: 16px; }
+.folder-form input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #6b5848; border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; font-size: 16px; text-overflow: ellipsis; }
 .folder-form button, .folder-manage button { flex: none; min-height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--muted); font-size: 14px; }
 .folder-form .folder-save { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 .folder-manage { display: flex; gap: 4px; margin-top: 2px; }
@@ -200,4 +210,9 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .folder-pick label { display: flex; align-items: center; gap: 8px; min-height: 44px; padding-right: 8px; font-size: 14px; cursor: pointer; }
 .folder-pick input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
 #queue .folder-pick .folder-new { display: block; width: auto; min-height: 44px; padding: 0 8px; border-radius: 10px; color: var(--accent); font-size: 14px; }
-@media (max-width: 360px) { .folder-pick { margin-left: 0; } }
+@media (max-width: 360px) {
+  .folder-pick { margin-left: 0; }
+  /* Give the title more of the row. */
+  #queue button { gap: 8px; }
+  #queue .row-action, #hidden-list .row-action { min-width: 44px; padding: 0 4px; }
+}
