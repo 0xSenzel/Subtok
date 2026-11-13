@@ -2,7 +2,7 @@
 
 Play your saved TikTok collections as playlists, including private ones. The website in `web/` is the player. The browser extension in `extension/` reads your collections through your TikTok session.
 
-The [Subtok landing page](https://0xsenzel.github.io/Subtok/) explains how the player works and shows it with sample clips.
+The [Subtok landing page](https://0xsenzel.github.io/subtok/) explains how the player works and shows it with sample clips.
 
 ## Listen
 
