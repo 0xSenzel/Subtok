@@ -144,6 +144,9 @@ module.exports = async (req, res) => {
       found = await resolveLink(one(query.url).trim());
     }
     const { tracks, skipped } = await listTracks(found.id);
+    // Refreshes by id share one TikTok call per minute at Vercel's CDN. The CDN consumes this header and does not
+    // forward it, so browsers still get the no-store above. A link lookup is never cached.
+    if (one(query.id)) res.setHeader('Vercel-CDN-Cache-Control', 'max-age=60');
     res.status(200).json({ id: found.id, name: found.name, tracks, skipped });
   } catch (error) {
     const status = error.status || 502;
