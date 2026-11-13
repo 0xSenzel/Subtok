@@ -42,14 +42,15 @@
   const sampleUrl = file => new URL(`samples/${file}`, location.href).href;
   const SAMPLE = { id: 'sample', name: 'Sample playlist', sample: true };
   const SAMPLE_TRACKS = [
+    ['instrumental', 'Sample instrumental', 'TikTok sound'],
     ['sunrise', 'Sunrise'],
     ['night-drive', 'Night drive'],
     ['slow-tide', 'Slow tide'],
     ['city-lights', 'City lights']
-  ].map(([file, name]) => ({
+  ].map(([file, name, by = 'Subtok sample']) => ({
     id: `sample-${file}`,
     title: name,
-    artist: 'Subtok sample',
+    artist: by,
     duration: 24,
     artwork: new URL('cover.png', location.href).href,
     motion: '',
