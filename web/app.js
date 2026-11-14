@@ -418,7 +418,53 @@
     return '';
   }
 
+  // A Subtok share link: a public collection by ID, maybe with one folder. It plays with no extension or TikTok sign-in.
+  function takeShareLink() {
+    const params = new URLSearchParams(location.search);
+    const link = SubtokShareLink.parseShareParams(params);
+    if (!link) return null;
+    for (const name of SubtokShareLink.PARAMS) params.delete(name);
+    const rest = String(params);
+    history.replaceState(null, '', location.pathname + (rest ? `?${rest}` : '') + location.hash);
+    return link;
+  }
+
+  async function openShared(link) {
+    const choice = { id: link.id, name: link.name, source: 'link', link: '' };
+    working(`Loading ${link.folder?.name || link.name}…`);
+    let result;
+    try {
+      result = await fetchTracks(choice);
+    } catch (error) {
+      return showError(error, () => openShared(link));
+    }
+    if (!result.tracks.length) {
+      return showNotice({
+        heading: `${choice.name} has nothing to play`,
+        body: ['None of the clips in this collection have audio the player can use.'],
+        actions: [{ label: 'Paste a collection link', primary: true, run: showLinkForm }]
+      });
+    }
+    saved.set(choice);
+    const folder = link.folder ? addSharedFolder(choice.id, link.folder, result.tracks) : null;
+    if (!folder) {
+      // The sender shared every clip, so play every clip, not a folder this listener chose earlier.
+      const store = folderStore.get();
+      if (store[choice.id]) { store[choice.id].active = null; folderStore.set(store); }
+    }
+    open(choice, result.tracks);
+    announceSkipped(result);
+    if (folder && activeFolder === folder.id) status.textContent = `Playing ${folder.name} from ${choice.name}.`;
+    else if (link.folder) status.textContent = `Couldn’t open the folder ${link.folder.name}. Its clips aren’t in this collection anymore, so all clips play.`;
+  }
+
   function start() {
+    const link = takeShareLink();
+    if (link) {
+      if (!link.error) return openShared(link);
+      showWelcome();
+      return setLinkError('This Subtok link is incomplete. Ask for the link again.');
+    }
     const shared = takeSharedLink();
     if (shared !== null) {
       showWelcome();
@@ -522,7 +568,7 @@
     if (response.status === 429) throw failure('Too many requests from this network. Wait a minute, then try again.');
     let body = null;
     try { body = await response.json(); } catch { /* Handled below. */ }
-    if (!response.ok || !Array.isArray(body?.tracks)) throw failure(body?.error || `Subtok couldn’t load this collection (error ${response.status}). Try again.`);
+    if (!response.ok || !Array.isArray(body?.tracks)) throw failure(body?.error || `Subtok couldn’t load this collection (error ${response.status}). Try again.`, response.status);
     return body;
   }
 
@@ -566,7 +612,7 @@
     hideConnection();
     collectionName.textContent = choice.name;
     changeButton.textContent = choice.sample ? 'Use my collections' : 'Change';
-    shareButton.hidden = !(fromLink(choice) && choice.link);
+    shareButton.hidden = !!choice.sample;
     renderQueue();
     if (!queue.length) return showAllHidden();
     const first = resumeIndex(choice, queue);
@@ -1195,6 +1241,39 @@
     folderChips.replaceChildren(chip('All', null, shown.length),
       ...folders.map(folder => chip(folder.name, folder.id, shown.filter(track => inFolder(folder, track)).length)), add);
     renderManage();
+    shareButton.setAttribute('aria-label', `Share ${folderById(activeFolder)?.name || collection?.name || 'this playlist'}`);
+  }
+
+  const newFolderId = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+  // Adds a folder from a share link to this browser's folders for the collection and makes it active.
+  // The listener's own folders are never changed. Returns the folder, or null when none of its clips are in the collection.
+  function addSharedFolder(collectionId, shared, tracks) {
+    const ids = new Set(tracks.map(track => track.id));
+    const clips = shared.clips.filter(id => ids.has(id));
+    if (!clips.length) return null;
+    const store = folderStore.get();
+    const entry = Array.isArray(store[collectionId]?.folders) ? store[collectionId] : { folders: [] };
+    const named = name => entry.folders.find(folder => typeof folder?.name === 'string' && folder.name.toLowerCase() === name.toLowerCase());
+    const clipsOf = folder => (Array.isArray(folder?.clips) ? folder.clips.filter(id => ids.has(id)) : []);
+    const same = folder => { const own = clipsOf(folder); return own.length === clips.length && clips.every(id => own.includes(id)); };
+    let name = shared.name;
+    let folder = named(name);
+    if (folder && !same(folder)) {
+      // The listener has their own folder with this name. Use a separate copy; an earlier copy takes the newest clips.
+      const suffix = ' (shared)';
+      name = `${shared.name.slice(0, 30 - suffix.length)}${suffix}`;
+      folder = named(name);
+      if (folder) folder.clips = clips;
+    }
+    if (!folder) {
+      folder = { id: newFolderId(), name, clips };
+      entry.folders.push(folder);
+    }
+    entry.active = folder.id;
+    store[collectionId] = entry;
+    folderStore.set(store);
+    return folder;
   }
 
   const manageTarget = () => folderById(editFolder) || folderById(activeFolder);
@@ -1320,7 +1399,7 @@
       return folderInput.focus();
     }
     if (renaming) renaming.name = name;
-    else folders.push({ id: `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name, clips: mode.clip ? [mode.clip] : [] });
+    else folders.push({ id: newFolderId(), name, clips: mode.clip ? [mode.clip] : [] });
     saveFolders();
     closeForm();
     renderQueue();
@@ -1352,18 +1431,48 @@
     return chooseAnother(collection);
   });
 
+  // Share what plays now: the active folder, or else the whole collection. The link plays only public collections.
   shareButton.addEventListener('click', async () => {
-    if (!collection?.link) return;
-    const url = `${location.origin}/?link=${encodeURIComponent(collection.link)}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: collection.name, url }); } catch { /* The visitor closed the share sheet. */ }
+    const shared = collection;
+    if (!shared || shared.sample || shareButton.disabled) return;
+    const active = folderById(activeFolder);
+    const clips = active ? playableIn(active).map(track => track.id) : [];
+    const folder = clips.length ? { name: active.name, clips } : null;
+    if (clips.length > SubtokShareLink.MAX_CLIPS) {
+      status.textContent = `Folders with more than ${SubtokShareLink.MAX_CLIPS} clips can’t be shared yet. Select All to share the whole collection.`;
       return;
+    }
+    // A collection from the extension can be private. Check that the link would play for someone without a TikTok sign-in.
+    if (!fromLink(shared)) {
+      shareButton.disabled = true;
+      try {
+        await linkRequest(`id=${encodeURIComponent(shared.id)}`);
+      } catch (error) {
+        status.textContent = error.code === 404
+          ? 'This collection is private, so the link won’t play for anyone else. In TikTok, make it public, then share again.'
+          : error.message;
+        return;
+      } finally {
+        shareButton.disabled = false;
+      }
+      if (collection !== shared) return; // The listener switched collections while it checked.
+    }
+    const label = folder ? folder.name : shared.name;
+    const url = SubtokShareLink.buildShareUrl(location.origin, { id: shared.id, name: shared.name, folder });
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: folder ? `${shared.name} · ${folder.name}` : shared.name, url });
+        return;
+      } catch (error) {
+        // NotAllowedError: the check above took too long for the share sheet. Copy instead. Any other error: the listener closed it.
+        if (error.name !== 'NotAllowedError') return;
+      }
     }
     try {
       await navigator.clipboard.writeText(url);
-      status.textContent = 'Link copied.';
+      status.textContent = `Link to ${label} copied.`;
     } catch {
-      status.textContent = 'Couldn’t copy the link.';
+      status.replaceChildren(`Copy this link to share ${label}: `, element('span', url, 'share-url'));
     }
   });
 

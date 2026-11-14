@@ -212,6 +212,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .modes svg { width: 22px; height: 22px; }
 .modes .state { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-variant-numeric: tabular-nums; }
 #status { min-height: 20px; margin-top: 12px; color: var(--muted); font-size: 13px; text-align: center; }
+#status .share-url { overflow-wrap: anywhere; user-select: all; color: var(--text); }
 
 /* Connection banner */
 .connection { margin-top: 12px; padding: 12px 14px; border: 1px solid #6b5848; border-radius: 12px; background: var(--surface); font-size: 14px; }
