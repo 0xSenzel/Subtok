@@ -6,10 +6,11 @@
   <meta name="theme-color" content="#211c19">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https:; media-src 'self' https: blob:; connect-src 'self' https://*.tiktokcdn.com https://*.tiktokcdn-us.com; font-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https:; manifest-src 'self'; media-src 'self' https: blob:; connect-src 'self' https://*.tiktokcdn.com https://*.tiktokcdn-us.com; font-src 'self'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <link rel="icon" href="cover.png">
   <link rel="apple-touch-icon" href="cover.png">
+  <link rel="manifest" href="manifest.webmanifest">
   <title>Subtok</title>
   <link rel="stylesheet" href="app.css">
   <script defer src="app.js"></script>
@@ -56,6 +57,7 @@
     <section id="player" aria-label="Music player" hidden>
       <header>
         <p class="collection"></p>
+        <button type="button" id="share" class="text share" aria-label="Share this playlist" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg></button>
         <button type="button" id="change" class="text">Change</button>
       </header>
       <div class="art" aria-hidden="true">

@@ -20,6 +20,8 @@
   const queueList = $('#queue');
   const changeButton = $('#change');
   const storageKey = 'mcq.collection';
+  const coverUrl = new URL('cover.png', location.href).href;
+  const shareButton = $('#share');
   const icons = {
     Play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>',
     Pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3v14H7zm7 0h3v14h-3z"/></svg>'
@@ -222,7 +224,7 @@
     set(list) { try { localStorage.setItem(recentKey, JSON.stringify(list.slice(0, 8))); } catch { /* Keep it for this visit only. */ } },
     add(choice, tracks) {
       const artwork = tracks.find(track => track.artwork)?.artwork || '';
-      this.set([{ id: choice.id, name: choice.name, count: tracks.length, artwork }, ...this.get().filter(item => item.id !== choice.id)]);
+      this.set([{ id: choice.id, name: choice.name, count: tracks.length, artwork, link: choice.link || '' }, ...this.get().filter(item => item.id !== choice.id)]);
     },
     remove(id) { this.set(this.get().filter(item => item.id !== id)); }
   };
@@ -236,7 +238,7 @@
       button.type = 'button';
       const text = element('span');
       text.append(element('span', item.name, 'name'), element('span', item.count ? `${item.count} ${item.count === 1 ? 'clip' : 'clips'}` : '', 'by'));
-      button.append(thumbnail(item.artwork), text);
+      button.append(thumbnail(item.artwork, coverUrl), text);
       button.addEventListener('click', () => openRecent(item));
       const remove = element('button', '', 'remove');
       remove.type = 'button';
@@ -253,7 +255,7 @@
   }
 
   function openRecent(item) {
-    const choice = { id: item.id, name: item.name, source: 'link' };
+    const choice = { id: item.id, name: item.name, source: 'link', link: item.link || '' };
     saved.set(choice);
     if (openFromCache(choice)) return refresh();
     load(choice);
@@ -277,7 +279,7 @@
     setLinkBusy(false);
     if (welcome.hidden) return; // The visitor left while it loaded.
     if (!result.tracks.length) return fail('None of the clips in this collection have audio the player can use.');
-    const choice = { id: result.id, name: result.name, source: 'link' };
+    const choice = { id: result.id, name: result.name, source: 'link', link: text };
     saved.set(choice);
     cacheTracks(choice.id, result);
     linkInput.value = '';
@@ -403,7 +405,27 @@
     });
   }
 
+  // Android's Share menu and shared playlist links open the page with the link in the address. This runs before the saved collection.
+  const sharedParams = ['url', 'text', 'title', 'link'];
+  function takeSharedLink() {
+    const params = new URLSearchParams(location.search);
+    if (!sharedParams.some(name => params.has(name))) return null;
+    history.replaceState(null, '', location.pathname + location.hash);
+    for (const name of sharedParams) {
+      const found = params.get(name)?.match(/https:\/\/(?:vt|vm|www)\.tiktok\.com\/[^\s"'<>]+/);
+      if (found) return found[0];
+    }
+    return '';
+  }
+
   function start() {
+    const shared = takeSharedLink();
+    if (shared !== null) {
+      showWelcome();
+      if (!shared) return setLinkError('Subtok couldn’t find a TikTok link in what was shared. Copy the collection link and paste it here.');
+      linkInput.value = shared;
+      return linkForm.requestSubmit();
+    }
     const cached = saved.get();
     if (cached?.id && openFromCache(cached)) return checkInBackground();
     if (intent.take()) return startMine();
@@ -514,14 +536,18 @@
     if (url) img.src = url;
     else img.removeAttribute('src');
   }
-  function thumbnail(url) {
+  // `fallback` replaces artwork that is empty or fails to load. TikTok's artwork links expire.
+  function thumbnail(url, fallback = '') {
     const box = element('span', '', 'thumb');
     const img = element('img');
     img.alt = '';
     img.loading = 'lazy';
     img.referrerPolicy = 'no-referrer';
-    img.addEventListener('error', () => { img.hidden = true; });
-    setArtwork(img, url);
+    img.addEventListener('error', () => {
+      if (fallback && img.src !== fallback) img.src = fallback;
+      else img.hidden = true;
+    });
+    setArtwork(img, url || fallback);
     box.append(img);
     return box;
   }
@@ -538,6 +564,7 @@
     hideConnection();
     collectionName.textContent = choice.name;
     changeButton.textContent = choice.sample ? 'Use my collections' : 'Change';
+    shareButton.hidden = !(fromLink(choice) && choice.link);
     renderQueue();
     if (!queue.length) return showAllHidden();
     const first = resumeIndex(choice, queue);
@@ -1321,6 +1348,21 @@
   changeButton.addEventListener('click', () => {
     if (collection?.sample) return extensionPlatform() ? startMine() : showLinkForm();
     return chooseAnother(collection);
+  });
+
+  shareButton.addEventListener('click', async () => {
+    if (!collection?.link) return;
+    const url = `${location.origin}/?link=${encodeURIComponent(collection.link)}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: collection.name, url }); } catch { /* The visitor closed the share sheet. */ }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      status.textContent = 'Link copied.';
+    } catch {
+      status.textContent = 'Couldn’t copy the link.';
+    }
   });
 
   seek.addEventListener('pointerdown', () => { dragging = true; });
