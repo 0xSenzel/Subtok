@@ -11,7 +11,11 @@ The [Subtok landing page](https://0xsenzel.github.io/subtok/) explains how the p
 3. To hear your own collections, including private ones, use Chrome or Brave on a computer and select **Set up the extension** under the field. Once the extension is installed, the link reads **Open my collections**. If the extension is missing, the player shows the setup steps for your browser and checks again each time you return to the tab.
 4. If you aren't signed in to TikTok in this browser, select **Open TikTok**, sign in, and return.
 5. The website reopens your last collection on this browser. To switch, select **Change**. For a collection from a link, **Change** returns to the start screen, which lists your recent collections, up to eight. Select one to play it again without pasting, or select **×** to remove it. While the sample plays, select **Use my collections** instead.
-6. On iPhone, any browser plays a collection from a link. The extension needs Safari. While audio plays, you can lock the phone or switch apps. If iOS shows Now Playing controls, use them to pause or skip.
+6. To install Subtok, use **Add to Home Screen** in Safari on iPhone, or **Install app** in Chrome on Android. It then opens like an app.
+7. To share a collection to someone else, select **Share** next to **Change** in the player. It sends a Subtok link that plays the same public collection. **Share** appears only for a collection opened from a link.
+8. On Android, after you install Subtok, it appears in TikTok's Share menu. Share a collection to Subtok and it starts playing.
+9. iPhone doesn't let websites appear in the Share menu. On iPhone, copy the link in TikTok and paste it into Subtok.
+10. On iPhone, any browser plays a collection from a link. The extension needs Safari. While audio plays, you can lock the phone or switch apps. If iOS shows Now Playing controls, use them to pause or skip.
 
 The player shows the clip video while the page is visible and falls back to cover art when the video is unavailable. A collection from a link shows cover art only, because TikTok's video addresses need a sign-in. On iPhone, Safari can send still artwork and playback commands to iOS. iOS chooses the Now Playing layout. The website can't put moving video in the Dynamic Island.
 
@@ -61,7 +65,7 @@ gh release create v0.3.1 dist/subtok-extension.zip --title "Subtok extension 0.3
 
 ### iPhone
 
-Any iPhone browser can play a public collection from a link, with no setup. The extension, which plays private collections, needs Safari, even if Chrome or Brave is your default browser. Open the hosted player on a physical iPhone. In the simulator on the same Mac, you can also use the local address above.
+Any iPhone browser can play a public collection from a link, with no setup. To add the player to the Home Screen, use Safari's Share button, then **Add to Home Screen**. iPhone doesn't let websites appear in the Share menu, so copy the collection link in TikTok and paste it into Subtok. The extension, which plays private collections, needs Safari, even if Chrome or Brave is your default browser. Open the hosted player on a physical iPhone. In the simulator on the same Mac, you can also use the local address above.
 
 Generate a Safari extension app in Xcode from the repository root. [Apple's Safari extension guide](https://developer.apple.com/documentation/safariservices/running-your-safari-web-extension)
 
