@@ -197,8 +197,13 @@
     show(welcome);
     if (focus) linkInput.focus();
   }
-  // From the player's Change button. Phones skip the focus, so the keyboard doesn't cover the recent list.
-  const showLinkForm = () => showWelcome({ focus: !matchMedia('(pointer: coarse)').matches });
+  function showLinkForm() {
+    intent.take();
+    // Keep the recent list visible on touch screens by leaving the keyboard closed.
+    showWelcome({ focus: !matchMedia('(pointer: coarse)').matches });
+  }
+
+  const pasteLinkAction = { label: 'Paste a collection link', run: showLinkForm };
 
   function renderPrivateNote() {
     const note = $('#private-note');
@@ -339,21 +344,21 @@
       return showNotice({
         heading: 'Subtok isn’t on iPhone yet',
         body: ['Public collections play from a link in any iPhone browser. Private collections need the Subtok extension in Chrome or Brave on a computer.'],
-        actions: [{ label: 'Play sample', primary: true, run: playSample }, { label: 'Paste a collection link', run: showLinkForm }]
+        actions: [{ label: 'Play sample', primary: true, run: playSample }, pasteLinkAction]
       });
     }
     if (kind === 'ios-other') {
       return showNotice({
         heading: 'Open this page in Safari',
         body: ['Public collections play from a link in any browser, including this one. For private collections, open this page in Safari. Safari is the only iPhone browser that runs the Subtok extension.'],
-        actions: [{ label: 'Play sample', primary: true, run: playSample }, { label: 'Paste a collection link', run: showLinkForm }]
+        actions: [{ label: 'Play sample', primary: true, run: playSample }, pasteLinkAction]
       });
     }
     if (kind === 'unsupported') {
       return showNotice({
         heading: 'Subtok doesn’t work in this browser yet',
         body: ['Public collections play from a link in any browser, including this one. For private collections, use Chrome or Brave on a computer, or Safari on iPhone.'],
-        actions: [{ label: 'Play sample', primary: true, run: playSample }, { label: 'Paste a collection link', run: showLinkForm }]
+        actions: [{ label: 'Play sample', primary: true, run: playSample }, pasteLinkAction]
       });
     }
     const steps = kind === 'ios'
@@ -379,6 +384,7 @@
       actions: [
         { label: kind === 'ios' ? 'Install Subtok' : 'Download extension', primary: true, run: () => getExtension(kind) },
         { label: 'Check again', run: recheck },
+        pasteLinkAction,
         { label: 'Play sample', run: playSample }
       ]
     });
@@ -391,7 +397,8 @@
       body: ['Sign in to TikTok in this browser so the player can read your collections. Then come back here.'],
       actions: [
         { label: 'Open TikTok', primary: true, run: () => window.open('https://www.tiktok.com/login', '_blank', 'noopener') },
-        { label: 'I’ve signed in', run: startMine }
+        { label: 'I’ve signed in', run: startMine },
+        pasteLinkAction
       ]
     });
     checkOnReturn(startMine);
@@ -401,7 +408,7 @@
     showNotice({
       heading: 'Something went wrong',
       body: [{ error: error.message }],
-      actions: [{ label: 'Try again', primary: true, run: retry }]
+      actions: [{ label: 'Try again', primary: true, run: retry }, pasteLinkAction]
     });
   }
 
@@ -442,7 +449,7 @@
       return showNotice({
         heading: `${choice.name} has nothing to play`,
         body: ['None of the clips in this collection have audio the player can use.'],
-        actions: [{ label: 'Paste a collection link', primary: true, run: showLinkForm }]
+        actions: [{ ...pasteLinkAction, primary: true }]
       });
     }
     saved.set(choice);
@@ -506,7 +513,7 @@
       return showNotice({
         heading: 'No collections yet',
         body: ['In TikTok, save clips to a collection under Profile › Favorites › Collections. Then come back here.'],
-        actions: [{ label: 'Check again', primary: true, run: showPicker }]
+        actions: [{ label: 'Check again', primary: true, run: showPicker }, pasteLinkAction]
       });
     }
     collectionList.replaceChildren(...result.collections.map(item => {
@@ -611,7 +618,6 @@
     show(player);
     hideConnection();
     collectionName.textContent = choice.name;
-    changeButton.textContent = choice.sample ? 'Use my collections' : 'Change';
     shareButton.hidden = !!choice.sample;
     renderQueue();
     if (!queue.length) return showAllHidden();
@@ -1427,9 +1433,10 @@
   $('#prev').addEventListener('click', goPrevious);
   next.addEventListener('click', goNext);
   changeButton.addEventListener('click', () => {
-    if (collection?.sample) return extensionPlatform() ? startMine() : showLinkForm();
+    if (collection?.sample) return showLinkForm();
     return chooseAnother(collection);
   });
+  $('#picker-paste-link').addEventListener('click', showLinkForm);
 
   // Share what plays now: the active folder, or else the whole collection. The link plays only public collections.
   shareButton.addEventListener('click', async () => {
