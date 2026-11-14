@@ -10,7 +10,7 @@ Play your saved TikTok collections as playlists. The website in `web/` is the pl
 4. If you aren't signed in to TikTok in this browser, select **Open TikTok**, sign in, and return.
 5. The website reopens your last collection on this browser. To switch, select **Change**. For a collection from a link, **Change** returns to the start screen, which lists your recent collections, up to eight. Select one to play it again without pasting, or select **×** to remove it. While the sample plays, select **Use my collections** instead.
 6. To install Subtok, use **Add to Home Screen** in Safari on iPhone, or **Install app** in Chrome on Android. It then opens like an app.
-7. To share a collection to someone else, select **Share** next to **Change** in the player. It sends a Subtok link that plays the same public collection. **Share** appears only for a collection opened from a link.
+7. To share what you're playing, select **Share** next to **Change** in the player. If a folder is selected, the link plays only that folder's clips; otherwise it plays the whole collection. The other person needs no extension or sign-in, and the folder is added to their folders. The collection must be public in TikTok. For a collection opened through the extension, the player checks this first and tells you if the collection is private. A shared folder can have up to 150 clips.
 8. On Android, after you install Subtok, it appears in TikTok's Share menu. Share a collection to Subtok and it starts playing.
 9. iPhone doesn't let websites appear in the Share menu. On iPhone, copy the link in TikTok and paste it into Subtok.
 10. On iPhone, any browser plays a collection from a link. The extension needs Safari. While audio plays, you can lock the phone or switch apps. If iOS shows Now Playing controls, use them to pause or skip.
@@ -86,11 +86,14 @@ Firefox isn't supported yet because it runs extension background scripts differe
 
 Chromium and desktop Brave passed the video and queue fixture with simulated TikTok responses. The signed-in iPhone simulator played a private collection and showed live video in sync with audio. The lock screen showed the title, artist, and progress. Artwork, transport controls, and sound output still need a physical iPhone check.
 
+Sharing was checked with the local server, using two ports as two separate visitors. A whole collection and a folder opened on the second port, with only the folder's clips and the folder selected. Opening the same folder link twice kept one folder. A folder name that the recipient already used for other clips became a separate "(shared)" folder. A collection opened through the extension was simulated from a saved list: a private one showed the private message, and a public one gave a link. `node --test` covers reading share links.
+
 The link flow plays a public collection on the live site from Vercel's servers. It was checked with `curl` and on a physical phone. `node --test` covers the function's link checks, redirects, TikTok errors, and cache headers without calling TikTok.
 
 Not yet verified:
 
 - The extension from the release zip in a real Chrome or Brave: install, the automatic reload, the picker, resume, and the connection banner.
 - On Android, Subtok in TikTok's Share menu after installing the site, and the native share sheet from the Share control.
+- Sharing a collection opened through the real extension, and the share sheet on a phone after the public check.
 - Whether a pasted link starts playing on iPhone without a second tap.
 - The 60-second CDN cache on a live deployment.
