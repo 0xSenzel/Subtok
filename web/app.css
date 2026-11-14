@@ -163,6 +163,9 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 }
 .collection { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; color: var(--label); }
 .text { min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--muted); font-size: 14px; }
+.share { flex: none; min-width: 44px; margin-left: auto; padding: 0; }
+.share + .text { flex: none; }
+.share svg { width: 20px; height: 20px; }
 .art {
   position: relative;
   display: grid;
