@@ -11,7 +11,7 @@ const collection = require('../api/collection.js');
 const root = path.join(__dirname, '..', 'web');
 const port = Number(process.env.PORT) || 8790;
 const host = process.env.HOST || '127.0.0.1';
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.m4a': 'audio/mp4' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.m4a': 'audio/mp4', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2' };
 
 http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');

@@ -86,4 +86,11 @@ Firefox isn't supported yet because it runs extension background scripts differe
 
 Chromium and desktop Brave passed the video and queue fixture with simulated TikTok responses. The signed-in iPhone simulator played a private collection and showed live video in sync with audio. The lock screen showed the title, artist, and progress. Artwork, transport controls, and sound output still need a physical iPhone check.
 
-The link flow played a public collection in a desktop browser and in the iPhone simulator, using the local server. It is not yet tested on Vercel's servers, where TikTok may treat the requests differently.
+The link flow plays a public collection on the live site from Vercel's servers. It was checked with `curl` and on a physical phone. `node --test` covers the function's link checks, redirects, TikTok errors, and cache headers without calling TikTok.
+
+Not yet verified:
+
+- The extension from the release zip in a real Chrome or Brave: install, the automatic reload, the picker, resume, and the connection banner.
+- On Android, Subtok in TikTok's Share menu after installing the site, and the native share sheet from the Share control.
+- Whether a pasted link starts playing on iPhone without a second tap.
+- The 60-second CDN cache on a live deployment.
